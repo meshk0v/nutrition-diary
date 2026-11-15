@@ -77,7 +77,7 @@
       if (!tourSeen()) setTimeout(startTour, 400); // первый запуск — короткое обучение
     } catch (e) {
       // Ошибки доступа (нет в группе, не удалось войти, участие завершено) — всегда показываем, кэш стираем
-      if (!state || ['not_registered', 'unauthorized', 'finished', 'no_demo'].includes(e.code)) {
+      if (!state || ['not_registered', 'unauthorized', 'finished', 'no_demo', 'maintenance'].includes(e.code)) {
         try { localStorage.removeItem(CACHE_KEY); } catch (err) {}
         showError(e);
       } else toast('Нет связи с таблицей, показаны сохранённые данные');
@@ -126,7 +126,24 @@
     });
   }
 
+  // Заглушка «Приложение в разработке» (тренер включает/выключает в «Настройках»)
+  function showMaintenance(e) {
+    $('#hello').textContent = 'Скоро откроемся';
+    $('#sub').textContent = '';
+    $('#demoBanner').classList.add('hidden');
+    $('.tabs').classList.add('hidden');
+    const lines = String(e.message || '').split('\n').map(l => esc(l)).join('<br>');
+    $('main').innerHTML = `<div class="dev-box">
+      <div class="dev-ic">🚧</div>
+      <h2>Приложение в разработке</h2>
+      <p>${lines}</p>
+      <div class="dev-list"><span>📝 Отчёт</span><span>📋 Меню</span><span>📏 Замеры</span><span>📊 Итоги</span></div>
+      <button class="btn" onclick="location.reload()">Проверить ещё раз</button>
+    </div>`;
+  }
+
   function showError(e) {
+    if (e.code === 'maintenance') return showMaintenance(e);
     if (e.code === 'not_registered' && e.anketa) return showAnketa(e);
     const msgs = {
       not_registered: ['🙋', 'Вас пока нет в группе', 'Передайте тренеру ваш Telegram ID: ' + (e.id || '—') + '. После добавления откройте дневник снова.'],
