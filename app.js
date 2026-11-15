@@ -47,7 +47,7 @@
         body: JSON.stringify(Object.assign({ action, initData: inTelegram ? tg.initData : '', demo: !inTelegram }, data))
       });
       const json = await res.json();
-      if (json.error) throw Object.assign(new Error(json.message || json.error), { code: json.error, id: json.id });
+      if (json.error) throw Object.assign(new Error(json.message || json.error), { code: json.error, id: json.id, anketa: json.anketa, anketaSent: json.anketaSent });
       return json;
     } finally {
       if (--pending === 0) $('#sync').classList.remove('busy');
@@ -84,10 +84,50 @@
   }
 
   function skeleton() {
+    $('#reportForm').innerHTML = '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>';
     $('#todayList').innerHTML = '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>';
   }
 
+  /* ---------- Анкета (для тех, кого ещё нет в группе) ---------- */
+  function showAnketa(e) {
+    $('#hello').textContent = 'Добро пожаловать!';
+    $('#sub').textContent = 'Ваш Telegram ID: ' + (e.id || '—');
+    $('#fab').classList.add('hidden'); $('.tabs').classList.add('hidden');
+    if (e.anketaSent) {
+      $('main').innerHTML = `<div class="error-box"><div class="big">✅</div><h2>Анкета отправлена</h2>
+        <p class="muted">Тренер добавит вас в группу — после этого откройте дневник снова.<br>Ваш Telegram ID: <b>${esc(e.id)}</b></p>
+        <button class="btn" onclick="location.reload()">Обновить</button></div>`;
+      return;
+    }
+    const field = q => {
+      const [key, label, type] = q;
+      if (type.startsWith('select:')) return `<select name="${key}"><option value=""></option>${type.slice(7).split('|').map(o => `<option>${esc(o)}</option>`).join('')}</select>`;
+      if (type === 'area') return `<textarea name="${key}"></textarea>`;
+      return `<input name="${key}" ${type === 'num' ? 'inputmode="decimal"' : ''}>`;
+    };
+    $('main').innerHTML = `<form class="card anketa" id="anketaForm" autocomplete="off">
+      <h2>Анкета перед стартом</h2>
+      <div class="muted" style="margin-top:4px">Заполните до начала — тренер по ней рассчитает ваш калораж. Ответы увидит только тренер.</div>
+      ${e.anketa.map(sec => `<h3>${esc(sec[0])}</h3>` + sec[1].map(q => `<div class="fld"><div class="lbl">${esc(q[1])}</div>${field(q)}</div>`).join('')).join('')}
+      <div class="disclaimer">Программа не заменяет врача. При наличии заболеваний консультация с лечащим врачом обязательна.</div>
+      <button class="btn primary full" type="submit">Отправить анкету тренеру</button></form>`;
+    $('#anketaForm').addEventListener('submit', async ev => {
+      ev.preventDefault();
+      const fd = new FormData(ev.target), answers = {};
+      fd.forEach((v, k) => { answers[k] = String(v).trim(); });
+      if (!answers.name) { toast('Укажите имя и фамилию'); return; }
+      const btn = $('button[type=submit]', ev.target);
+      btn.disabled = true; btn.textContent = 'Отправляю…';
+      try {
+        await api('anketa', { answers });
+        haptic('ok'); window.scrollTo(0, 0);
+        showAnketa(Object.assign({}, e, { anketaSent: true }));
+      } catch (err) { toast(err.message); btn.disabled = false; btn.textContent = 'Отправить анкету тренеру'; }
+    });
+  }
+
   function showError(e) {
+    if (e.code === 'not_registered' && e.anketa) return showAnketa(e);
     const msgs = {
       not_registered: ['🙋', 'Вас пока нет в группе', 'Передайте тренеру ваш Telegram ID: ' + (e.id || '—') + '. После добавления откройте дневник снова.'],
       unauthorized: ['🔒', 'Не удалось войти', e.message],
@@ -108,9 +148,9 @@
     items = (data.items || []).map(a => ({ name: a[0], type: a[1], kcal: a[2], p: a[3], f: a[4], c: a[5], portion: a[6] || 0 }));
     const d = parseDate(data.date);
     $('#hello').textContent = 'Привет, ' + data.me.name + '!';
-    $('#sub').textContent = `${DAYS[(d.getDay() + 6) % 7]}, ${d.getDate()} ${MONTHS[d.getMonth()]}` + (data.me.target ? ` · цель ${fmt(data.me.target)} ккал` : '');
+    $('#sub').textContent = `${DAYS[(d.getDay() + 6) % 7]}, ${d.getDate()} ${MONTHS[d.getMonth()]}` + (data.me.target ? ` · план ${fmt(data.me.target)} ккал` : '');
     $('#demoBanner').classList.toggle('hidden', !data.demo);
-    renderToday(); renderHistory(); renderMenu(); renderRations(); renderProgress();
+    renderReport(); renderToday(); renderHistory(); renderMenu(); renderRations(); renderProgress();
   }
 
   /* ---------- Сегодня ---------- */
@@ -152,21 +192,15 @@
       </div>`).join('');
   }
 
+  // Дневник → «Отчёт»: калории и Б/Ж/У подставляются в форму отчёта за сегодня
   function renderFinish() {
     const box = $('#finishBox');
     if (!state.today.items.length) { box.innerHTML = ''; return; }
-    box.innerHTML = state.dayReportAt
-      ? `<button class="btn full" id="finishBtn">Отправить тренеру ещё раз</button><div class="done"><b>✓ Дневник отправлен тренеру в ${esc(state.dayReportAt)}</b><br>Если что-то добавили — отправьте заново.</div>`
-      : `<button class="btn primary full" id="finishBtn">✅ Завершить день — отправить тренеру</button>`;
+    box.innerHTML = `<button class="btn primary full" id="toReport">📝 Перенести в отчёт за сегодня</button>`;
   }
-  $('#finishBox').addEventListener('click', async e => {
-    const b = e.target.closest('#finishBtn'); if (!b) return;
-    if (!state.dayReportAt && !(await confirmAsk('Отправить тренеру дневник за сегодня?'))) return;
-    b.disabled = true; b.textContent = 'Отправляю…';
-    try {
-      const r = await api('finishDay');
-      state.dayReportAt = r.sentAt; saveCache(); renderFinish(); haptic('ok'); toast('Дневник отправлен тренеру ✅');
-    } catch (err) { toast(err.message); renderFinish(); }
+  $('#finishBox').addEventListener('click', e => {
+    if (!e.target.closest('#toReport')) return;
+    repDay = 'today'; renderReport(true); switchTab('report'); haptic();
   });
 
   $('#todayList').addEventListener('click', async e => {
@@ -467,13 +501,16 @@
     }
   });
 
-  /* ---------- Прогресс ---------- */
+  /* ---------- Замеры ---------- */
+  let measurePhotos = null;
+  const METRIC_KEYS = () => (state.metrics || [['weight', 'Вес', 'кг']]);
+
   function renderProgress() {
-    const ms = state.measures || [];
-    const w = ms.filter(m => m.weight);
+    // вес: замеры + утренний вес из отчётов дня
+    const w = (state.weights && state.weights.length ? state.weights : (state.measures || []).filter(m => m.weight)).filter(m => m.weight);
     const chart = $('#weightChart');
     if (w.length < 2) {
-      chart.innerHTML = `<div class="empty">${w.length ? 'Нужен ещё хотя бы один замер, чтобы построить график' : 'Замеров пока нет — внесите первый ниже'}</div>`;
+      chart.innerHTML = `<div class="empty">${w.length ? 'Нужно ещё хотя бы одно взвешивание, чтобы построить график' : 'Вес появится здесь из отчётов и замеров'}</div>`;
       $('#weightDelta').textContent = '';
     } else {
       const W = 320, H = 170, pad = { l: 30, r: 10, t: 12, b: 22 };
@@ -485,43 +522,197 @@
       const pts = w.map((m, i) => [x(i), y(m.weight)]);
       const line = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
       const area = line + ` L${pts[pts.length - 1][0].toFixed(1)} ${H - pad.b} L${pts[0][0].toFixed(1)} ${H - pad.b} Z`;
+      const dm = d => `${parseDate(d).getDate()}.${String(parseDate(d).getMonth() + 1).padStart(2, '0')}`;
       const labels = w.map((m, i) => (w.length <= 6 || i % Math.ceil(w.length / 6) === 0 || i === w.length - 1)
-        ? `<text x="${x(i)}" y="${H - 6}" text-anchor="middle">${parseDate(m.date).getDate()}.${String(parseDate(m.date).getMonth() + 1).padStart(2, '0')}</text>` : '').join('');
+        ? `<text x="${x(i)}" y="${H - 6}" text-anchor="middle">${dm(m.date)}</text>` : '').join('');
       chart.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
         <text x="2" y="${pad.t + 4}">${fmt(max, 1)}</text><text x="2" y="${H - pad.b}">${fmt(min, 1)}</text>
         <path class="ar" d="${area}"/><path class="ln" d="${line}"/>
         ${pts.map(p => `<circle class="dot" cx="${p[0]}" cy="${p[1]}" r="3.5"/>`).join('')}${labels}</svg>`;
       const d = vals[vals.length - 1] - vals[0];
-      $('#weightDelta').innerHTML = `<span class="${d <= 0 ? 'down' : 'up'}">${d > 0 ? '+' : ''}${fmt(d, 1)} кг</span> с ${parseDate(w[0].date).getDate()}.${String(parseDate(w[0].date).getMonth() + 1).padStart(2, '0')}`;
+      $('#weightDelta').innerHTML = `<span class="${d <= 0 ? 'down' : 'up'}">${d > 0 ? '+' : ''}${fmt(d, 1)} кг</span> с ${dm(w[0].date)}`;
     }
+    const ms = state.measures || [];
     const last = ms[ms.length - 1], prev = ms[ms.length - 2];
     const delta = k => prev && last[k] != null && prev[k] != null ? last[k] - prev[k] : null;
     $('#lastMeasure').innerHTML = last ? `
       <div class="section-head inner"><h2>Последний замер</h2><span class="muted">${parseDate(last.date).toLocaleDateString('ru-RU')}</span></div>
-      <div class="stats">${[['weight', 'вес'], ['chest', 'грудь'], ['waist', 'талия'], ['hips', 'бёдра']].map(([k, n]) => {
+      <div class="stats7">${METRIC_KEYS().map(([k, n]) => {
         const dd = delta(k);
-        return `<div><b>${fmt(last[k], 1)}</b><small>${n}${dd != null && dd !== 0 ? ` <span class="${dd < 0 ? 'down' : 'up'}">${dd > 0 ? '+' : ''}${fmt(dd, 1)}</span>` : ''}</small></div>`;
-      }).join('')}</div>` : '<h2>Замеров пока нет</h2><div class="muted" style="margin-top:4px">Раз в неделю: утром натощак, до тренировки.</div>';
+        return `<div><b>${fmt(last[k], 1)}</b><small>${n.toLowerCase()}${dd != null && dd !== 0 ? ` <span class="${dd < 0 ? 'down' : 'up'}">${dd > 0 ? '+' : ''}${fmt(dd, 1)}</span>` : ''}</small></div>`;
+      }).join('')}</div>` : '<h2>Замеров пока нет</h2><div class="muted" style="margin-top:4px">Раз в неделю, по воскресеньям утром.</div>';
+    // форма — один раз (чтобы не сбрасывать введённое)
+    if (!$('#measureForm').dataset.ready) {
+      $('#measureForm').innerHTML = METRIC_KEYS().map(([k, n, u]) => `<label>${n}, ${u}<input name="${k}" inputmode="decimal"${k === 'weight' ? ' required' : ''}></label>`).join('') +
+        `<div class="full"><div class="lbl" style="font-size:13px;font-weight:700;margin:6px 0">📸 Фото с 4 сторон <span class="muted" style="font-weight:500">— при хорошем свете</span></div><div class="photos" id="mPhotos"></div></div>
+         <button class="btn primary full" type="submit">Сохранить и отправить тренеру</button>`;
+      measurePhotos = photoPicker($('#mPhotos'), 4, 'фото');
+      $('#measureForm').dataset.ready = '1';
+    }
   }
 
   $('#measureForm').addEventListener('submit', async e => {
     e.preventDefault();
     const fd = new FormData(e.target);
-    const data = {}; ['weight', 'chest', 'waist', 'hips'].forEach(k => { const v = String(fd.get(k) || '').replace(',', '.').trim(); data[k] = v ? parseFloat(v) : ''; });
-    const btn = $('button', e.target);
-    btn.disabled = true; btn.textContent = 'Сохраняю…';
+    const data = { photos: measurePhotos ? measurePhotos.list : [] };
+    METRIC_KEYS().forEach(([k]) => { const v = String(fd.get(k) || '').replace(',', '.').trim(); data[k] = v ? parseFloat(v) : ''; });
+    const btn = $('button[type=submit]', e.target);
+    btn.disabled = true; btn.textContent = data.photos.length ? 'Отправляю фото…' : 'Сохраняю…';
     try {
       const r = await api('addMeasure', data);
-      state.measures = r.measures; saveCache(); renderProgress(); e.target.reset(); haptic('ok'); toast('Замер сохранён');
+      state.measures = r.measures; if (r.weights) state.weights = r.weights;
+      saveCache(); e.target.reset(); measurePhotos && measurePhotos.reset(); renderProgress(); window.scrollTo(0, 0);
+      haptic('ok'); toast('Замеры отправлены тренеру ✅');
     } catch (err) { toast(err.message); }
-    finally { btn.disabled = false; btn.textContent = 'Сохранить замер'; }
+    finally { btn.disabled = false; btn.textContent = 'Сохранить и отправить тренеру'; }
+  });
+
+  /* ---------- Фото (сжатие на телефоне) ---------- */
+  // Длинная сторона до 1600 px, JPEG 80% — фото весит ~200–400 КБ вместо 3–5 МБ
+  function compress(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const k = Math.min(1, 1600 / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL('image/jpeg', 0.8));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Не удалось открыть фото')); };
+      img.src = url;
+    });
+  }
+  /** Выбор фото в контейнере: возвращает объект с массивом list. labels — подписи пустых ячеек. */
+  function photoPicker(box, max, addLabel) {
+    const pk = { list: [] };
+    const input = document.createElement('input');
+    input.type = 'file'; input.accept = 'image/*'; input.multiple = true; input.hidden = true;
+    box.after(input);
+    pk.render = () => {
+      box.innerHTML = pk.list.map((src, i) => `<div class="ph"><img src="${src}" alt=""><button type="button" data-rm="${i}" aria-label="Убрать">×</button></div>`).join('') +
+        (pk.list.length < max ? `<button type="button" class="add-ph"><b>+</b>${esc(addLabel)}</button>` : '');
+    };
+    box.addEventListener('click', e => {
+      const rm = e.target.closest('[data-rm]');
+      if (rm) { pk.list.splice(+rm.dataset.rm, 1); pk.render(); return; }
+      if (e.target.closest('.add-ph')) input.click();
+    });
+    input.addEventListener('change', async () => {
+      const files = Array.from(input.files || []).slice(0, max - pk.list.length);
+      input.value = '';
+      for (const f of files) { try { pk.list.push(await compress(f)); } catch (err) { toast(err.message); } }
+      pk.render();
+    });
+    pk.reset = () => { pk.list = []; pk.render(); };
+    pk.render();
+    return pk;
+  }
+
+  /* ---------- Отчёт дня (формат тренера) ---------- */
+  let repDay = 'today';
+  let repPhotos = null;
+  const targetText = t => t ? t.text : '';
+
+  function renderPlan() {
+    const m = state.me;
+    const cells = [['Калории', m.target ? fmt(m.target) : '—', 'ккал']];
+    if (m.tPr) cells.push(['Белок', targetText(m.tPr), 'г']);
+    if (m.tFr) cells.push(['Жиры', targetText(m.tFr), 'г']);
+    if (m.tCr) cells.push(['Углеводы', targetText(m.tCr), 'г']);
+    $('#planCard').innerHTML = `<div class="ttl">Ваша планка на день</div>` + cells.map(c => `<div><b>${esc(c[1])}</b><small>${c[0]}${c[1] !== '—' ? ', ' + c[2] : ''}</small></div>`).join('');
+  }
+
+  function dayReport() { return (state.daily || {})[repDay] || null; }
+  function dayDiary() { return repDay === 'today' ? state.today : state.yesterdayDiary; }
+
+  function renderReport(fromDiary) {
+    renderPlan();
+    $$('#repDay button').forEach(b => b.classList.toggle('on', b.dataset.day === repDay));
+    const r = dayReport();
+    const dDate = parseDate(state.date); if (repDay === 'yesterday') dDate.setDate(dDate.getDate() - 1);
+    const label = `${dDate.getDate()} ${MONTHS[dDate.getMonth()]}`;
+    $('#repStatus').innerHTML = r
+      ? `<div class="rep-status ok">✓ Отчёт за ${label} отправлен${r.sentAt ? ' в ' + esc(r.sentAt) : ''}. Можно исправить и отправить заново.</div>`
+      : `<div class="rep-status todo">${repDay === 'today' ? 'Отчёт за сегодня — до 0:00' : 'Отчёт за вчера ещё не отправлен'}</div>`;
+    const v = r || {};
+    const dia = dayDiary();
+    const useDiary = fromDiary && dia && dia.items && dia.items.length;
+    const val = (k, d) => { const x = useDiary && d != null ? d : v[k]; return x == null || x === '' ? '' : String(x).replace('.', ','); };
+    const hunger = v.hunger || '';
+    $('#reportForm').innerHTML = `
+      ${dia && dia.items && dia.items.length && !useDiary ? `<button type="button" class="btn full from-diary" id="fillDiary">Подставить из дневника: ${fmt(dia.kcal)} ккал, Б ${fmt(dia.p)} · Ж ${fmt(dia.f)} · У ${fmt(dia.c)}</button>` : ''}
+      <div class="fld"><div class="lbl">🔥 Калории за день <small>из FatSecret</small></div>
+        <input name="kcal" inputmode="numeric" placeholder="например, 1650" value="${val('kcal', dia && Math.round(dia.kcal))}" required></div>
+      <div class="fld"><div class="lbl">БЖУ, г <small>белок — обязательно, если тренер выдал планку</small></div>
+        <div class="row3">
+          <label>Белки<input name="p" inputmode="decimal" value="${val('p', dia && Math.round(dia.p))}"></label>
+          <label>Жиры<input name="f" inputmode="decimal" value="${val('f', dia && Math.round(dia.f))}"></label>
+          <label>Углеводы<input name="c" inputmode="decimal" value="${val('c', dia && Math.round(dia.c))}"></label>
+        </div></div>
+      <div class="fld"><div class="lbl">😋 Голод в течение дня</div>
+        <div class="scale" id="hungerScale">${Array.from({ length: 10 }, (_, i) => `<button type="button" data-h="${i + 1}" class="${+hunger === i + 1 ? 'on' : ''}">${i + 1}</button>`).join('')}</div>
+        <div class="scale-hint"><span>не голоден</span><span>очень голоден</span></div>
+        <input type="hidden" name="hunger" value="${esc(hunger)}"></div>
+      <div class="fld"><div class="row2">
+        <label>⚖️ Вес утром, кг<input name="weight" inputmode="decimal" value="${val('weight')}" placeholder="натощак"></label>
+        <label>💧 Вода, л<input name="water" inputmode="decimal" value="${val('water')}" placeholder="примерно"></label>
+      </div></div>
+      <div class="fld"><div class="row2">
+        <label>👣 Шаги<input name="steps" inputmode="numeric" value="${val('steps')}"></label>
+        <label>☕ Чай/кофе, кружек<input name="tea" inputmode="numeric" value="${val('tea')}" placeholder="без добавок"></label>
+      </div>
+        <label class="toggle"><input type="checkbox" name="stepsTr" ${v.stepsTr === 'с тренировкой' ? 'checked' : ''}> шаги с учётом тренировки</label></div>
+      <div class="fld"><div class="row2">
+        <label>🏋️ Тренировка<input name="training" value="${esc(v.training || '')}" placeholder="нет / силовая 60 мин"></label>
+        <label>🥦 Растительность, г<input name="veg" inputmode="numeric" value="${val('veg')}" placeholder="овощи и фрукты"></label>
+      </div></div>
+      <div class="fld"><div class="lbl">📎 FatSecret <small>ссылка на экспорт или скриншоты</small></div>
+        <input name="fatsecret" type="text" inputmode="url" value="${esc(v.fatsecret || '')}" placeholder="https://foods.fatsecret.com/export/…">
+        <div class="photos" id="repPhotos" style="margin-top:8px"></div></div>
+      <div class="fld"><div class="lbl">💬 Комментарий для тренера</div>
+        <textarea name="note" rows="2" placeholder="необязательно">${esc(v.note || '')}</textarea></div>
+      <button class="btn primary full" type="submit">${r ? 'Отправить исправленный отчёт' : 'Отправить отчёт тренеру'}</button>`;
+    repPhotos = photoPicker($('#repPhotos'), 3, 'скриншот');
+  }
+
+  $('#repDay').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; repDay = b.dataset.day; renderReport(); haptic(); });
+  $('#reportForm').addEventListener('click', e => {
+    const h = e.target.closest('[data-h]');
+    if (h) {
+      $('#reportForm [name=hunger]').value = h.dataset.h;
+      $$('#hungerScale button').forEach(x => x.classList.toggle('on', x === h)); haptic(); return;
+    }
+    if (e.target.closest('#fillDiary')) { renderReport(true); haptic(); }
+  });
+  $('#reportForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const data = { day: repDay, photos: repPhotos ? repPhotos.list : [] };
+    ['kcal', 'p', 'f', 'c', 'hunger', 'weight', 'water', 'steps', 'tea', 'veg'].forEach(k => { data[k] = String(fd.get(k) || '').replace(',', '.').replace(/\s/g, ''); });
+    ['training', 'fatsecret', 'note'].forEach(k => { data[k] = String(fd.get(k) || '').trim(); });
+    data.stepsTr = !!fd.get('stepsTr');
+    if (!(parseFloat(data.kcal) > 0)) { toast('Укажите калории за день'); return; }
+    if (state.me.tPr && !data.p && !(await confirmAsk('Белок не указан. Отправить без него?'))) return;
+    const btn = $('button[type=submit]', e.target);
+    btn.disabled = true; btn.textContent = data.photos.length ? 'Отправляю со скриншотами…' : 'Отправляю…';
+    try {
+      const r = await api('saveReport', data);
+      state.daily = state.daily || {};
+      state.daily[repDay] = r.report;
+      if (r.weights) state.weights = r.weights;
+      saveCache(); renderReport(); renderProgress(); window.scrollTo(0, 0);
+      haptic('ok'); toast(r.delivered === false ? 'Отчёт сохранён в таблицу' : 'Отчёт отправлен тренеру ✅');
+    } catch (err) { toast(err.message); btn.disabled = false; btn.textContent = 'Отправить отчёт тренеру'; }
   });
 
   /* ---------- Вкладки ---------- */
   function switchTab(name) {
     $$('.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
     $$('.tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + name));
-    $('#fab').classList.toggle('hidden', name === 'progress');
+    $('#fab').classList.toggle('hidden', name !== 'today');
     window.scrollTo(0, 0);
   }
   $$('.tabs button').forEach(b => b.addEventListener('click', () => { switchTab(b.dataset.tab); haptic(); }));
@@ -529,7 +720,7 @@
   // Ссылка вида …/#menu открывает нужную вкладку (так бот может вести сразу в меню)
   function openFromHash() {
     const h = (location.hash || '').slice(1) || (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || '';
-    if (['today', 'rations', 'menu', 'progress'].includes(h)) switchTab(h);
+    if (['report', 'today', 'rations', 'menu', 'progress'].includes(h)) switchTab(h);
     if (h === 'add') openAdd();
   }
 
