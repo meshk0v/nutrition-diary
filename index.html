@@ -7,9 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="app.css?v=1794765919">
-  <script src="https://telegram.org/js/telegram-web-app.js?v=1794765919"></script>
-  <script src="config.js?v=1794765919"></script>
+  <link rel="stylesheet" href="app.css?v=1794766068">
+  <script src="https://telegram.org/js/telegram-web-app.js?v=1794766068"></script>
+  <script src="config.js?v=1794766068"></script>
 </head>
 <body>
   <div id="app">
@@ -18,7 +18,10 @@
         <div class="hello" id="hello">Дневник питания</div>
         <div class="sub" id="sub">Загрузка…</div>
       </div>
-      <div class="sync" id="sync" title="Синхронизация"></div>
+      <div class="top-right">
+        <div class="sync" id="sync" title="Синхронизация"></div>
+        <button class="help-btn hidden" id="helpBtn" aria-label="Как пользоваться">?</button>
+      </div>
     </header>
     <div class="banner hidden" id="demoBanner">Демо-режим: показан тестовый участник. В Telegram откроются ваши данные.</div>
 
@@ -105,7 +108,22 @@
     </div>
   </div>
 
+  <!-- Обучение: подсветка вкладок по очереди -->
+  <div class="tour hidden" id="tour">
+    <div class="tour-spot" id="tourSpot"></div>
+    <div class="tour-card" id="tourCard">
+      <div class="tour-ic" id="tourIc"></div>
+      <div class="tour-t" id="tourT"></div>
+      <div class="tour-x" id="tourX"></div>
+      <div class="tour-nav">
+        <div class="tour-dots" id="tourDots"></div>
+        <button class="tour-skip" id="tourSkip">Пропустить</button>
+        <button class="btn primary" id="tourNext">Далее</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast hidden" id="toast"></div>
-  <script src="app.js?v=1794765919"></script>
+  <script src="app.js?v=1794766068"></script>
 </body>
 </html>

@@ -73,6 +73,8 @@
       apply(await api('init'));
       saveCache();
       openFromHash();
+      $('#helpBtn').classList.toggle('hidden', false);
+      if (!tourSeen()) setTimeout(startTour, 400); // первый запуск — короткое обучение
     } catch (e) {
       // Ошибки доступа (нет в группе, не удалось войти, участие завершено) — всегда показываем, кэш стираем
       if (!state || ['not_registered', 'unauthorized', 'finished', 'no_demo'].includes(e.code)) {
@@ -693,6 +695,54 @@
     const tab = h === 'today' || h === 'add' ? 'report' : h === 'rations' ? 'menu' : h;
     if (['report', 'results', 'menu', 'progress'].includes(tab)) switchTab(tab);
   }
+
+  /* ---------- Обучение: что за что отвечает (5 шагов, показывается один раз) ---------- */
+  const TOUR_KEY = 'nutrition-tour-v1-' + tgUserId;
+  const TOUR = [
+    { ic: '👋', t: 'Привет!', x: 'Покажу за 15 секунд, где что лежит.' },
+    { tab: 'report', ic: '📝', t: 'Отчёт', x: 'Каждый день до 0:00. Калории и белок — из FatSecret, плюс голод, вес и шаги.' },
+    { tab: 'menu', ic: '📋', t: 'Меню', x: 'Меню на неделю от тренера и рецепты.' },
+    { tab: 'progress', ic: '📏', t: 'Замеры', x: 'По воскресеньям: замеры и 4 фото.' },
+    { tab: 'results', ic: '📊', t: 'Итоги', x: 'Ваш прогресс: вес, калории и белок по дням.' },
+    { ic: '🔔', t: 'Напоминания придут в чат', x: 'Бот напомнит об отчёте и замерах — кнопка в сообщении откроет нужный экран.' }
+  ];
+  let tourStep = 0;
+  function tourSeen() { try { return !!localStorage.getItem(TOUR_KEY); } catch (e) { return true; } }
+  function startTour() {
+    tourStep = 0;
+    closeSheets();
+    $('#tour').classList.toggle('hidden', false);
+    $('#tourDots').innerHTML = TOUR.map(() => '<i></i>').join('');
+    showTourStep();
+  }
+  function endTour() {
+    $('#tour').classList.add('hidden');
+    try { localStorage.setItem(TOUR_KEY, '1'); } catch (e) {}
+    switchTab('report');
+  }
+  function showTourStep() {
+    const s = TOUR[tourStep], spot = $('#tourSpot'), card = $('#tourCard');
+    $('#tourIc').textContent = s.ic; $('#tourT').textContent = s.t; $('#tourX').textContent = s.x;
+    $$('#tourDots i').forEach((d, i) => d.classList.toggle('on', i === tourStep));
+    $('#tourNext').textContent = tourStep === TOUR.length - 1 ? 'Понятно 👍' : 'Далее';
+    $('#tourSkip').style.visibility = tourStep === TOUR.length - 1 ? 'hidden' : '';
+    const btn = s.tab && $(`.tabs button[data-tab="${s.tab}"]`);
+    if (btn) {
+      switchTab(s.tab); // за подсветкой видно, что на этой вкладке
+      const r = btn.getBoundingClientRect();
+      Object.assign(spot.style, { left: (r.left - 4) + 'px', top: (r.top - 4) + 'px', width: (r.width + 8) + 'px', height: (r.height + 8) + 'px' });
+      spot.classList.toggle('center', false);
+      card.style.top = ''; card.style.bottom = (window.innerHeight - r.top + 14) + 'px';
+    } else {
+      spot.classList.add('center');
+      card.style.bottom = ''; card.style.top = '30%';
+    }
+    haptic();
+  }
+  $('#tourNext').addEventListener('click', () => { if (++tourStep >= TOUR.length) endTour(); else showTourStep(); });
+  $('#tourSkip').addEventListener('click', endTour);
+  $('#helpBtn').addEventListener('click', startTour);
+  window.addEventListener('resize', () => { if (!$('#tour').classList.contains('hidden')) showTourStep(); });
 
   init();
 })();
