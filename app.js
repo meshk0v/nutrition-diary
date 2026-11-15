@@ -15,9 +15,6 @@
   let state = null;          // ответ init
   let items = [];            // справочник [{name, type, kcal, p, f, c, portion}]
   let menuDay = 0;
-  let current = null;        // выбранный продукт в окне количества
-  let unit = 'г';
-  let filter = 'all';
 
   const $ = (s, el = document) => el.querySelector(s);
   const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -85,14 +82,13 @@
 
   function skeleton() {
     $('#reportForm').innerHTML = '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>';
-    $('#todayList').innerHTML = '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>';
   }
 
   /* ---------- Анкета (для тех, кого ещё нет в группе) ---------- */
   function showAnketa(e) {
     $('#hello').textContent = 'Добро пожаловать!';
     $('#sub').textContent = 'Ваш Telegram ID: ' + (e.id || '—');
-    $('#fab').classList.add('hidden'); $('.tabs').classList.add('hidden');
+    $('.tabs').classList.add('hidden');
     if (e.anketaSent) {
       $('main').innerHTML = `<div class="error-box"><div class="big">✅</div><h2>Анкета отправлена</h2>
         <p class="muted">Тренер добавит вас в группу — после этого откройте дневник снова.<br>Ваш Telegram ID: <b>${esc(e.id)}</b></p>
@@ -137,7 +133,6 @@
     const [icon, title, text] = msgs[e.code] || ['⚠️', 'Ошибка загрузки', 'Проверьте интернет и попробуйте снова. ' + (e.message || '')];
     $('main').innerHTML = `<div class="error-box"><div class="big">${icon}</div><h2>${esc(title)}</h2><p class="muted">${esc(text)}</p>
       <button class="btn" onclick="location.reload()">Обновить</button></div>`;
-    $('#fab').classList.add('hidden');
     $('.tabs').classList.add('hidden');
     $('#sub').textContent = '';
   }
@@ -150,91 +145,14 @@
     $('#hello').textContent = 'Привет, ' + data.me.name + '!';
     $('#sub').textContent = `${DAYS[(d.getDay() + 6) % 7]}, ${d.getDate()} ${MONTHS[d.getMonth()]}` + (data.me.target ? ` · план ${fmt(data.me.target)} ккал` : '');
     $('#demoBanner').classList.toggle('hidden', !data.demo);
-    renderReport(); renderToday(); renderHistory(); renderMenu(); renderRations(); renderProgress();
+    renderReport(); renderMenu(); renderRations(); renderProgress();
   }
-
-  /* ---------- Сегодня ---------- */
-  function renderToday() {
-    const t = state.today, target = state.me.target || 0;
-    const ratio = target ? t.kcal / target : 0;
-    const ring = $('#ringFg');
-    const C = 2 * Math.PI * 52; // длина окружности кольца
-    ring.style.strokeDasharray = C.toFixed(1) + 'px';
-    ring.style.strokeDashoffset = (C * (1 - Math.min(ratio, 1))).toFixed(1) + 'px';
-    ring.style.stroke = ratio > 1.15 ? 'var(--bad)' : ratio > 1 ? 'var(--warn)' : 'var(--accent)';
-    $('#kcalNum').textContent = fmt(t.kcal);
-    $('#kcalCap').textContent = target ? 'из ' + fmt(target) + ' ккал' : 'ккал';
-    $('#leftLabel').textContent = !target ? '' : t.kcal <= target ? `Осталось ${fmt(target - t.kcal)} ккал` : `Сверх цели +${fmt(t.kcal - target)} ккал`;
-    // БЖУ: если тренер задал «планку» — показываем «съедено / цель», иначе — доли в калориях
-    const kcalOf = { p: 4, f: 9, c: 4 };
-    const total = Math.max(1, t.p * 4 + t.f * 9 + t.c * 4);
-    const goals = { p: state.me.tP, f: state.me.tF, c: state.me.tC };
-    $('#macros').innerHTML = [['p', 'Белки'], ['f', 'Жиры'], ['c', 'Углеводы']].map(([k, n]) => {
-      const g = goals[k];
-      const w = g ? Math.min(100, t[k] / g * 100) : t[k] * kcalOf[k] / total * 100;
-      const over = g && t[k] > g * 1.15;
-      return `<div class="macro"><div class="macro-top"><span>${n}</span><b>${fmt(t[k], 0)}${g ? ' / ' + fmt(g) : ''} г</b></div>
-       <div class="bar"><i style="width:${Math.round(w)}%;background:${over ? 'var(--bad)' : 'var(--' + k + ')'}"></i></div></div>`;
-    }).join('');
-    renderFinish();
-
-    const list = $('#todayList');
-    if (!t.items.length) {
-      list.innerHTML = '<div class="empty">Пока пусто. Нажмите «+», чтобы добавить первый приём пищи.</div>';
-      return;
-    }
-    list.innerHTML = t.items.map((it, i) => `
-      <div class="item">
-        <div><div class="name">${esc(it.name)}</div>
-        <div class="meta">${fmt(it.qty, 2)} ${esc(it.unit || '')}${it.unit && it.unit !== 'г' && it.grams ? ' · ' + fmt(it.grams) + ' г' : ''} · Б ${fmt(it.p, 1)} Ж ${fmt(it.f, 1)} У ${fmt(it.c, 1)}</div></div>
-        <div class="kcal">${fmt(it.kcal)}</div>
-        <button class="del" data-del="${i}" aria-label="Удалить">×</button>
-      </div>`).join('');
-  }
-
-  // Дневник → «Отчёт»: калории и Б/Ж/У подставляются в форму отчёта за сегодня
-  function renderFinish() {
-    const box = $('#finishBox');
-    if (!state.today.items.length) { box.innerHTML = ''; return; }
-    box.innerHTML = `<button class="btn primary full" id="toReport">📝 Перенести в отчёт за сегодня</button>`;
-  }
-  $('#finishBox').addEventListener('click', e => {
-    if (!e.target.closest('#toReport')) return;
-    repDay = 'today'; renderReport(true); switchTab('report'); haptic();
-  });
-
-  $('#todayList').addEventListener('click', async e => {
-    const b = e.target.closest('[data-del]'); if (!b) return;
-    const it = state.today.items[+b.dataset.del];
-    const ok = await confirmAsk(`Удалить «${it.name}» из дневника?`); if (!ok) return;
-    b.closest('.item').style.opacity = .4;
-    try {
-      const r = await api('deleteFood', { row: it.row, name: it.name });
-      state.today = r.today; updateTodayHistory(); renderToday(); renderHistory(); saveCache(); haptic('ok');
-    } catch (err) { toast(err.message); renderToday(); }
-  });
 
   function confirmAsk(text) {
     return new Promise(res => tg && tg.showConfirm && inTelegram ? tg.showConfirm(text, res) : res(window.confirm(text)));
   }
 
-  function updateTodayHistory() {
-    const h = state.history.find(x => x.date === state.date);
-    if (h) h.kcal = Math.round(state.today.kcal);
-  }
-
-  const PLOT_H = 86, LABEL_H = 18; // высота столбиков и подписи дат, px
-  function renderHistory() {
-    const h = state.history || [], target = state.me.target || 0;
-    const max = Math.max(target * 1.2, ...h.map(x => x.kcal), 1);
-    $('#historyBars').innerHTML = h.map(x => {
-      const d = parseDate(x.date);
-      const cls = !x.kcal ? 'zero' : target && x.kcal > target * 1.1 ? 'over' : '';
-      return `<div class="b" title="${d.getDate()}.${d.getMonth() + 1}: ${x.kcal} ккал"><i class="${cls}" style="height:${Math.max(2, Math.round(x.kcal / max * PLOT_H))}px"></i><span>${d.getDate()}</span></div>`;
-    }).join('') + (target ? `<div class="target" style="bottom:${LABEL_H + Math.round(target / max * PLOT_H)}px" title="Цель ${target} ккал"></div>` : '');
-  }
-
-  /* ---------- Добавление ---------- */
+  /* ---------- Нижние окна (рецепт, рацион) ---------- */
   function openSheet(id) {
     $$('.sheet').forEach(s => s.classList.add('hidden'));
     $(id).classList.remove('hidden');
@@ -248,97 +166,12 @@
   $$('[data-close]').forEach(b => b.addEventListener('click', closeSheets));
   $$('.sheet').forEach(s => s.addEventListener('click', e => { if (e.target === s) closeSheets(); }));
 
-  function openAdd() {
-    openSheet('#addSheet');
-    $('#search').value = '';
-    renderResults();
-    setTimeout(() => $('#search').focus(), 250);
-  }
-  $('#fab').addEventListener('click', openAdd);
-  $('#addBtnTop').addEventListener('click', openAdd);
-  $('#search').addEventListener('input', renderResults);
-  $('#filters').addEventListener('click', e => {
-    const b = e.target.closest('button'); if (!b) return;
-    filter = b.dataset.f;
-    $$('#filters button').forEach(x => x.classList.toggle('on', x === b));
-    renderResults();
-  });
-
-  function renderResults() {
-    const q = norm($('#search').value.trim());
-    const words = q.split(/\s+/).filter(Boolean);
-    let list = items.filter(it => (filter === 'all' || it.type === filter) && words.every(w => norm(it.name).includes(w)));
-    list.sort((a, b) => (norm(b.name).startsWith(q) - norm(a.name).startsWith(q)) || (a.type === 'r' ? -1 : 0) - (b.type === 'r' ? -1 : 0) || a.name.localeCompare(b.name, 'ru'));
-    $('#results').innerHTML = list.slice(0, 80).map(it => `
-      <button class="res" data-name="${esc(it.name)}">
-        <div><div>${esc(it.name)}${it.type === 'r' ? '<span class="tag">рецепт</span>' : ''}</div>
-        <div class="meta">${it.type === 'r' && it.portion ? `порция ${fmt(it.portion)} г · ${fmt(it.kcal * it.portion / 100)} ккал` : `на 100 г · Б ${fmt(it.p, 1)} Ж ${fmt(it.f, 1)} У ${fmt(it.c, 1)}`}</div></div>
-        <div class="k">${it.type === 'r' && it.portion ? '' : fmt(it.kcal) + ' ккал'}</div>
-      </button>`).join('') || '<div class="empty">Ничего не нашлось. Попросите тренера добавить продукт в справочник.</div>';
-  }
-
-  $('#results').addEventListener('click', e => {
-    const b = e.target.closest('.res'); if (!b) return;
-    openQty(items.find(x => x.name === b.dataset.name));
-  });
-
-  function openQty(it, qty, u) {
-    current = it;
-    const units = ['г'].concat(it.portion ? [it.type === 'r' ? 'порц' : 'шт'] : []);
-    unit = u && units.includes(u) ? u : (it.type === 'r' && it.portion ? 'порц' : 'г');
-    $('#qTitle').textContent = it.name;
-    $('#qPer').textContent = `100 г: ${fmt(it.kcal)} ккал · Б ${fmt(it.p, 1)} Ж ${fmt(it.f, 1)} У ${fmt(it.c, 1)}` + (it.portion ? ` · ${it.type === 'r' ? 'порция' : '1 шт'} ≈ ${fmt(it.portion)} г` : '');
-    $('#units').innerHTML = units.map(x => `<button data-u="${x}" class="${x === unit ? 'on' : ''}">${x === 'г' ? 'граммы' : x === 'шт' ? 'штуки' : 'порции'}</button>`).join('');
-    $('#qty').value = qty != null ? qty : unit === 'г' ? 100 : 1;
-    renderQuick(); updatePreview();
-    openSheet('#qtySheet');
-  }
-
-  $('#units').addEventListener('click', e => {
-    const b = e.target.closest('button'); if (!b) return;
-    unit = b.dataset.u;
-    $$('#units button').forEach(x => x.classList.toggle('on', x === b));
-    $('#qty').value = unit === 'г' ? 100 : 1;
-    renderQuick(); updatePreview();
-  });
-  function renderQuick() {
-    const vals = unit === 'г' ? [50, 100, 150, 200, 250, 300] : [0.5, 1, 1.5, 2, 3];
-    $('#quick').innerHTML = vals.map(v => `<button data-q="${v}">${fmt(v, 1)} ${unit}</button>`).join('');
-  }
-  $('#quick').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; $('#qty').value = b.dataset.q; updatePreview(); haptic(); });
-  $$('.step').forEach(b => b.addEventListener('click', () => {
-    const step = unit === 'г' ? 10 : 0.5;
-    const v = Math.max(0, (parseFloat(String($('#qty').value).replace(',', '.')) || 0) + step * +b.dataset.step);
-    $('#qty').value = Math.round(v * 10) / 10; updatePreview(); haptic();
-  }));
-  $('#qty').addEventListener('input', updatePreview);
-
+  // КБЖУ для количества: граммы, или штуки/порции × вес порции из справочника
   function calc(it, qty, u) {
     const grams = u === 'г' ? qty : qty * (it.portion || 0);
     const k = grams / 100;
     return { grams, kcal: it.kcal * k, p: it.p * k, f: it.f * k, c: it.c * k };
   }
-  function updatePreview() {
-    const qty = parseFloat(String($('#qty').value).replace(',', '.')) || 0;
-    const n = calc(current, qty, unit);
-    $('#preview').innerHTML = `<div><b>${fmt(n.kcal)}</b><small>ккал</small></div><div><b>${fmt(n.p, 1)}</b><small>белки</small></div>
-      <div><b>${fmt(n.f, 1)}</b><small>жиры</small></div><div><b>${fmt(n.c, 1)}</b><small>углеводы</small></div>`;
-    $('#addConfirm').disabled = !(qty > 0);
-  }
-
-  $('#addConfirm').addEventListener('click', async () => {
-    const qty = parseFloat(String($('#qty').value).replace(',', '.'));
-    if (!(qty > 0)) return;
-    const btn = $('#addConfirm');
-    btn.disabled = true; btn.textContent = 'Сохраняю…';
-    try {
-      const r = await api('addFood', { item: current.name, qty, unit });
-      state.today = r.today; updateTodayHistory(); saveCache();
-      closeSheets(); switchTab('today'); renderToday(); renderHistory();
-      haptic('ok'); toast('Добавлено: ' + current.name);
-    } catch (e) { toast(e.message); }
-    finally { btn.disabled = false; btn.textContent = 'Добавить в дневник'; }
-  });
 
   /* ---------- Меню ---------- */
   function renderMenu() {
@@ -359,22 +192,12 @@
           <div class="when">${esc(x.meal)}</div>
           <div class="dish">${esc(x.item)}</div>
           <div class="nut">${fmt(x.qty, 2)} ${esc(x.unit)}${x.grams && x.unit !== 'г' ? ' · ≈' + fmt(x.grams) + ' г' : ''} · ${fmt(x.kcal)} ккал · Б ${fmt(x.p, 1)} Ж ${fmt(x.f, 1)} У ${fmt(x.c, 1)}</div>
-          <div class="row">
-            ${state.recipes && state.recipes[x.item] ? `<button class="link" data-recipe="${i}">Рецепт →</button>` : '<span></span>'}
-            <button class="btn" data-eat="${i}">Съел(а) ✓</button>
-          </div>
+          ${state.recipes && state.recipes[x.item] ? `<div class="row"><button class="link" data-recipe="${i}">Рецепт →</button></div>` : ''}
         </div>`).join('') : '<div class="empty">На этот день блюд нет</div>');
   }
   $('#dayChips').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; menuDay = +b.dataset.d; renderMenu(); haptic(); });
   $('#dayMeals').addEventListener('click', e => {
     const day = state.menu.days[menuDay];
-    const eat = e.target.closest('[data-eat]');
-    if (eat) {
-      const x = day.meals[+eat.dataset.eat];
-      const it = items.find(i => i.name === x.item);
-      if (it) openQty(it, x.qty, x.unit || (it.type === 'r' ? 'порц' : 'г'));
-      return;
-    }
     const rb = e.target.closest('[data-recipe]');
     if (rb) openRecipe(day.meals[+rb.dataset.recipe]);
   });
@@ -390,9 +213,7 @@
       <div class="muted">На вашу порцию (${fmt(x.qty, 2)} ${esc(x.unit)})${it ? ' · ' + fmt(x.kcal) + ' ккал' : ''}</div>
       <div style="margin-top:8px">${r.items.map(([n, g]) => `<div class="ing"><span>${esc(n)}</span><b>${fmt(g * k)} г</b></div>`).join('')}</div>
       ${r.desc ? `<p class="desc">${esc(r.desc)}</p>` : ''}
-      <div class="muted" style="margin:10px 0 14px">Весь рецепт: ${r.portions} порц.; граммы — в сыром виде.</div>
-      <button class="btn primary full" id="rEat">Съел(а) — записать в дневник</button>`;
-    $('#rEat').onclick = () => { if (it) openQty(it, x.qty, x.unit); };
+      <div class="muted" style="margin:10px 0 4px">Весь рецепт: ${r.portions} порц.; граммы — в сыром виде.</div>`;
     openSheet('#recipeSheet');
   }
 
@@ -471,10 +292,7 @@
           <div class="when">${esc(x.meal)}</div>
           <div class="dish">${esc(x.item)}</div>
           <div class="nut">${fmt(x.qty, 2)} ${esc(x.unit)}${x.grams && x.unit !== 'г' ? ' · ≈' + fmt(x.grams) + ' г' : ''} · ${fmt(x.kcal)} ккал · Б ${fmt(x.p, 1)} Ж ${fmt(x.f, 1)} У ${fmt(x.c, 1)}</div>
-          <div class="row">
-            ${state.recipes && state.recipes[x.item] ? `<button class="link" data-rrec="${i}">Рецепт →</button>` : '<span></span>'}
-            <button class="btn" data-reat="${i}">Съел(а) ✓</button>
-          </div>
+          ${state.recipes && state.recipes[x.item] ? `<div class="row"><button class="link" data-rrec="${i}">Рецепт →</button></div>` : ''}
         </div>`).join('');
     } else {
       const list = shoppingList(r, raDays);
@@ -489,8 +307,6 @@
     if (days) { raDays = +days.dataset.days; renderRationSheet(); return; }
     const row = e.target.closest('.shop-row');
     if (row && e.target.matches('input')) { row.classList.toggle('got', e.target.checked); return; }
-    const eat = e.target.closest('[data-reat]');
-    if (eat) { const x = raCurrent.meals[+eat.dataset.reat]; const it = items.find(i => i.name === x.item); if (it) openQty(it, x.qty, x.unit); return; }
     const rec = e.target.closest('[data-rrec]');
     if (rec) { openRecipe(raCurrent.meals[+rec.dataset.rrec]); return; }
     if (e.target.closest('#copyShop')) {
@@ -566,7 +382,7 @@
       const r = await api('addMeasure', data);
       state.measures = r.measures; if (r.weights) state.weights = r.weights;
       saveCache(); e.target.reset(); measurePhotos && measurePhotos.reset(); renderProgress(); window.scrollTo(0, 0);
-      haptic('ok'); toast('Замеры отправлены тренеру ✅');
+      haptic('ok'); toast(r.edited ? 'Сегодняшний замер исправлен ✅' : 'Замеры отправлены тренеру ✅');
     } catch (err) { toast(err.message); }
     finally { btn.disabled = false; btn.textContent = 'Сохранить и отправить тренеру'; }
   });
@@ -630,9 +446,8 @@
   }
 
   function dayReport() { return (state.daily || {})[repDay] || null; }
-  function dayDiary() { return repDay === 'today' ? state.today : state.yesterdayDiary; }
 
-  function renderReport(fromDiary) {
+  function renderReport() {
     renderPlan();
     const r = dayReport();
     const WD = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
@@ -652,19 +467,16 @@
       ? `<div class="rep-status ok">✓ Отчёт за ${label} отправлен${r.sentAt ? ' в ' + esc(r.sentAt) : ''}. Можно исправить и отправить заново.</div>`
       : '';
     const v = r || {};
-    const dia = dayDiary();
-    const useDiary = fromDiary && dia && dia.items && dia.items.length;
-    const val = (k, d) => { const x = useDiary && d != null ? d : v[k]; return x == null || x === '' ? '' : String(x).replace('.', ','); };
+    const val = k => { const x = v[k]; return x == null || x === '' ? '' : String(x).replace('.', ','); };
     const hunger = v.hunger || '';
     $('#reportForm').innerHTML = `
-      ${dia && dia.items && dia.items.length && !useDiary ? `<button type="button" class="btn full from-diary" id="fillDiary">Подставить из дневника: ${fmt(dia.kcal)} ккал, Б ${fmt(dia.p)} · Ж ${fmt(dia.f)} · У ${fmt(dia.c)}</button>` : ''}
       <div class="fld"><div class="lbl">🔥 Калории за день <small>из FatSecret</small></div>
-        <input name="kcal" inputmode="numeric" placeholder="например, 1650" value="${val('kcal', dia && Math.round(dia.kcal))}" required></div>
+        <input name="kcal" inputmode="numeric" placeholder="например, 1650" value="${val('kcal')}" required></div>
       <div class="fld"><div class="lbl">БЖУ, г <small>белок — обязательно, если тренер выдал планку</small></div>
         <div class="row3">
-          <label>Белки<input name="p" inputmode="decimal" value="${val('p', dia && Math.round(dia.p))}"></label>
-          <label>Жиры<input name="f" inputmode="decimal" value="${val('f', dia && Math.round(dia.f))}"></label>
-          <label>Углеводы<input name="c" inputmode="decimal" value="${val('c', dia && Math.round(dia.c))}"></label>
+          <label>Белки<input name="p" inputmode="decimal" value="${val('p')}"></label>
+          <label>Жиры<input name="f" inputmode="decimal" value="${val('f')}"></label>
+          <label>Углеводы<input name="c" inputmode="decimal" value="${val('c')}"></label>
         </div></div>
       <div class="fld"><div class="lbl">😋 Голод в течение дня</div>
         <div class="scale" id="hungerScale">${Array.from({ length: 10 }, (_, i) => `<button type="button" data-h="${i + 1}" class="${+hunger === i + 1 ? 'on' : ''}">${i + 1}</button>`).join('')}</div>
@@ -704,7 +516,6 @@
       $('#reportForm [name=hunger]').value = h.dataset.h;
       $$('#hungerScale button').forEach(x => x.classList.toggle('on', x === h)); haptic(); return;
     }
-    if (e.target.closest('#fillDiary')) { renderReport(true); haptic(); }
   });
   $('#reportForm').addEventListener('submit', async e => {
     e.preventDefault();
@@ -732,7 +543,6 @@
   function switchTab(name) {
     $$('.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
     $$('.tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + name));
-    $('#fab').classList.toggle('hidden', name !== 'today');
     window.scrollTo(0, 0);
   }
   $$('.tabs button').forEach(b => b.addEventListener('click', () => { switchTab(b.dataset.tab); haptic(); }));
@@ -740,8 +550,9 @@
   // Ссылка вида …/#menu открывает нужную вкладку (так бот может вести сразу в меню)
   function openFromHash() {
     const h = (location.hash || '').slice(1) || (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || '';
-    if (['report', 'today', 'rations', 'menu', 'progress'].includes(h)) switchTab(h);
-    if (h === 'add') openAdd();
+    // старые ссылки (#today, #add) ведут на отчёт
+    const tab = h === 'today' || h === 'add' ? 'report' : h;
+    if (['report', 'rations', 'menu', 'progress'].includes(tab)) switchTab(tab);
   }
 
   init();
