@@ -110,7 +110,7 @@
     $('#hello').textContent = 'Привет, ' + data.me.name + '!';
     $('#sub').textContent = `${DAYS[(d.getDay() + 6) % 7]}, ${d.getDate()} ${MONTHS[d.getMonth()]}` + (data.me.target ? ` · цель ${fmt(data.me.target)} ккал` : '');
     $('#demoBanner').classList.toggle('hidden', !data.demo);
-    renderToday(); renderHistory(); renderMenu(); renderProgress();
+    renderToday(); renderHistory(); renderMenu(); renderRations(); renderProgress();
   }
 
   /* ---------- Сегодня ---------- */
@@ -362,6 +362,111 @@
     openSheet('#recipeSheet');
   }
 
+  /* ---------- Рационы ---------- */
+  let raCurrent = null, raView = 'meals', raDays = 1;
+
+  // Порции рациона подгоняются под калораж участника: множитель = цель / калорийность рациона
+  function rationFactor(r) {
+    const target = state.me.target;
+    if (!target || !r.total.kcal) return 1;
+    return Math.min(3, Math.max(0.5, Math.round(target / r.total.kcal * 20) / 20));
+  }
+  function scaleQty(qty, unit, f) {
+    if (unit === 'г') return Math.max(5, Math.round(qty * f / 5) * 5);
+    if (unit === 'шт') return Math.max(0.5, Math.round(qty * f * 2) / 2);
+    return Math.max(0.1, Math.round(qty * f * 10) / 10);
+  }
+  function scaledRation(r) {
+    const f = rationFactor(r);
+    const meals = r.meals.map(m => {
+      const it = items.find(i => i.name === m.item);
+      const unit = m.unit || (it && it.type === 'r' ? 'порц' : 'г');
+      const qty = scaleQty(m.qty, unit, f);
+      const n = it ? calc(it, qty, unit) : { grams: m.grams * f, kcal: m.kcal * f, p: m.p * f, f: m.f * f, c: m.c * f };
+      return Object.assign({}, m, { qty, unit, grams: n.grams, kcal: n.kcal, p: n.p, f: n.f, c: n.c });
+    });
+    const total = meals.reduce((t, m) => ({ kcal: t.kcal + m.kcal, p: t.p + m.p, f: t.f + m.f, c: t.c + m.c }), { kcal: 0, p: 0, f: 0, c: 0 });
+    return { name: r.name, note: r.note, factor: f, meals, total };
+  }
+
+  function renderRations() {
+    const list = (state.rations || []).map(scaledRation);
+    $('#rationIntro').innerHTML = `<div class="title">Готовые рационы на день</div>
+      <div class="muted" style="margin-top:4px">${state.me.target ? `Порции уже пересчитаны под вашу цель — ${fmt(state.me.target)} ккал.` : 'Выберите день и готовьте по нему.'} Внутри — рецепты и список покупок.</div>`;
+    $('#rationList').innerHTML = list.length ? list.map((r, i) => `
+      <button class="ration" data-ra="${i}">
+        <div class="top"><div class="nm">${esc(r.name)}</div><div class="kc">${fmt(r.total.kcal)} ккал</div></div>
+        <div class="dishes">${r.meals.map(m => esc(m.item)).join(' · ')}</div>
+        <div class="mac">Б ${fmt(r.total.p)} · Ж ${fmt(r.total.f)} · У ${fmt(r.total.c)}${r.factor !== 1 ? ` · порции ×${fmt(r.factor, 2)}` : ''}</div>
+      </button>`).join('') : '<div class="empty">Тренер пока не добавил рационы</div>';
+  }
+  $('#rationList').addEventListener('click', e => {
+    const b = e.target.closest('[data-ra]'); if (!b) return;
+    raCurrent = scaledRation(state.rations[+b.dataset.ra]); raView = 'meals'; raDays = 1;
+    $('#raTitle').textContent = raCurrent.name;
+    $('#raSub').textContent = `${fmt(raCurrent.total.kcal)} ккал · Б ${fmt(raCurrent.total.p)} Ж ${fmt(raCurrent.total.f)} У ${fmt(raCurrent.total.c)}`;
+    renderRationSheet(); openSheet('#rationSheet'); haptic();
+  });
+  $('#raSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; raView = b.dataset.v; renderRationSheet(); });
+
+  // Список покупок: рецепты раскладываются на ингредиенты (сырой вес), продукты — как есть
+  function shoppingList(r, days) {
+    const sum = {};
+    const add = (name, g) => { sum[name] = (sum[name] || 0) + g; };
+    r.meals.forEach(m => {
+      const rec = state.recipes && state.recipes[m.item];
+      if (rec && rec.items.length) {
+        const eaten = m.unit === 'порц' ? m.qty : (rec.portion ? m.grams / rec.portion : m.qty);
+        rec.items.forEach(([ing, g]) => add(ing, g * eaten / (rec.portions || 1)));
+      } else add(m.item, m.grams || 0);
+    });
+    return Object.keys(sum).map(name => {
+      const it = items.find(i => i.name === name);
+      const g = Math.round(sum[name] * days / 5) * 5;
+      const pcs = it && it.type === 'p' && it.portion ? Math.ceil(sum[name] * days / it.portion) : 0;
+      return { name, g, pcs };
+    }).sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+  }
+
+  function renderRationSheet() {
+    $$('#raSeg button').forEach(x => x.classList.toggle('on', x.dataset.v === raView));
+    const r = raCurrent;
+    if (raView === 'meals') {
+      $('#raBody').innerHTML = (r.note ? `<p class="desc" style="margin-top:0">${esc(r.note)}</p>` : '') + r.meals.map((x, i) => `
+        <div class="meal">
+          <div class="when">${esc(x.meal)}</div>
+          <div class="dish">${esc(x.item)}</div>
+          <div class="nut">${fmt(x.qty, 2)} ${esc(x.unit)}${x.grams && x.unit !== 'г' ? ' · ≈' + fmt(x.grams) + ' г' : ''} · ${fmt(x.kcal)} ккал · Б ${fmt(x.p, 1)} Ж ${fmt(x.f, 1)} У ${fmt(x.c, 1)}</div>
+          <div class="row">
+            ${state.recipes && state.recipes[x.item] ? `<button class="link" data-rrec="${i}">Рецепт →</button>` : '<span></span>'}
+            <button class="btn" data-reat="${i}">Съел(а) ✓</button>
+          </div>
+        </div>`).join('');
+    } else {
+      const list = shoppingList(r, raDays);
+      $('#raBody').innerHTML = `<div class="days-mult"><span class="muted">На сколько дней:</span>${[1, 3, 7].map(d => `<button data-days="${d}" class="${d === raDays ? 'on' : ''}">${d}</button>`).join('')}</div>` +
+        list.map(x => `<div class="shop-row"><label><input type="checkbox"><span>${esc(x.name)}</span></label><b>${x.g >= 1000 ? fmt(x.g / 1000, 2) + ' кг' : fmt(x.g) + ' г'}${x.pcs ? ` <span class="muted">≈ ${x.pcs} шт</span>` : ''}</b></div>`).join('') +
+        `<button class="btn full" id="copyShop" style="margin-top:14px">Скопировать список</button>
+         <div class="muted" style="margin-top:8px">Вес — в сыром виде, по рецептам рациона.</div>`;
+    }
+  }
+  $('#raBody').addEventListener('click', async e => {
+    const days = e.target.closest('[data-days]');
+    if (days) { raDays = +days.dataset.days; renderRationSheet(); return; }
+    const row = e.target.closest('.shop-row');
+    if (row && e.target.matches('input')) { row.classList.toggle('got', e.target.checked); return; }
+    const eat = e.target.closest('[data-reat]');
+    if (eat) { const x = raCurrent.meals[+eat.dataset.reat]; const it = items.find(i => i.name === x.item); if (it) openQty(it, x.qty, x.unit); return; }
+    const rec = e.target.closest('[data-rrec]');
+    if (rec) { openRecipe(raCurrent.meals[+rec.dataset.rrec]); return; }
+    if (e.target.closest('#copyShop')) {
+      const text = raCurrent.name + ' — список покупок' + (raDays > 1 ? ' на ' + raDays + ' дн.' : '') + ':\n' +
+        shoppingList(raCurrent, raDays).map(x => '• ' + x.name + ' — ' + (x.g >= 1000 ? fmt(x.g / 1000, 2) + ' кг' : x.g + ' г')).join('\n');
+      try { await navigator.clipboard.writeText(text); toast('Список скопирован'); }
+      catch (err) { toast('Не удалось скопировать'); }
+    }
+  });
+
   /* ---------- Прогресс ---------- */
   function renderProgress() {
     const ms = state.measures || [];
@@ -424,7 +529,7 @@
   // Ссылка вида …/#menu открывает нужную вкладку (так бот может вести сразу в меню)
   function openFromHash() {
     const h = (location.hash || '').slice(1) || (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || '';
-    if (['today', 'menu', 'progress'].includes(h)) switchTab(h);
+    if (['today', 'rations', 'menu', 'progress'].includes(h)) switchTab(h);
     if (h === 'add') openAdd();
   }
 

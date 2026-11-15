@@ -125,6 +125,25 @@ h2 { font-size: 16px; font-weight: 700; margin: 0; }
 .grid4 input:focus, .qty-row input:focus, #search:focus { border-color: var(--accent); }
 .grid4 .full { grid-column: 1 / -1; margin-top: 4px; }
 
+/* Рационы */
+.ration-intro .title { font-size: 17px; font-weight: 800; }
+.ration { background: var(--card); border-radius: 16px; padding: 14px; margin-bottom: 10px; box-shadow: var(--shadow); width: 100%; text-align: left; display: block; }
+.ration .top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.ration .nm { font-size: 16px; font-weight: 800; }
+.ration .kc { font-weight: 800; color: var(--accent); white-space: nowrap; }
+.ration .dishes { color: var(--text); font-size: 13.5px; margin: 6px 0 4px; line-height: 1.45; }
+.ration .mac { color: var(--muted); font-size: 12.5px; }
+.seg { display: flex; gap: 6px; background: var(--bg); padding: 4px; border-radius: 12px; margin-bottom: 10px; }
+.seg button { flex: 1; padding: 8px; border-radius: 9px; font-weight: 700; font-size: 13.5px; color: var(--muted); }
+.seg button.on { background: var(--card); color: var(--text); box-shadow: var(--shadow); }
+.shop-row { display: flex; justify-content: space-between; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--line); }
+.shop-row label { display: flex; gap: 10px; align-items: center; }
+.shop-row input { width: 18px; height: 18px; accent-color: var(--accent); }
+.shop-row.got span { text-decoration: line-through; color: var(--muted); }
+.days-mult { display: flex; gap: 6px; margin: 2px 0 8px; align-items: center; }
+.days-mult button { padding: 6px 12px; border-radius: 10px; background: var(--bg); font-weight: 700; font-size: 13px; }
+.days-mult button.on { background: var(--accent); color: #fff; }
+
 /* Завершить день */
 .finish { margin-top: 12px; }
 .finish .done { text-align: center; color: var(--muted); font-size: 13px; margin-top: 8px; }
@@ -143,7 +162,7 @@ h2 { font-size: 16px; font-weight: 700; margin: 0; }
 
 /* Нижняя навигация */
 .tabs { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; gap: 4px; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); background: var(--card); border-top: 1px solid var(--line); z-index: 5; }
-.tabs button { flex: 1; max-width: 170px; display: flex; flex-direction: column; align-items: center; font-size: 12px; font-weight: 600; color: var(--muted); padding: 4px 0; border-radius: 12px; }
+.tabs button { flex: 1; max-width: 130px; display: flex; flex-direction: column; align-items: center; font-size: 12px; font-weight: 600; color: var(--muted); padding: 4px 0; border-radius: 12px; }
 .tabs button .ic { font-size: 20px; line-height: 1.2; filter: grayscale(1); opacity: .7; }
 .tabs button.active { color: var(--accent); }
 .tabs button.active .ic { filter: none; opacity: 1; }

@@ -7,9 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="app.css?v=1794752900">
-  <script src="https://telegram.org/js/telegram-web-app.js?v=1794752900"></script>
-  <script src="config.js?v=1794752900"></script>
+  <link rel="stylesheet" href="app.css?v=1794753082">
+  <script src="https://telegram.org/js/telegram-web-app.js?v=1794753082"></script>
+  <script src="config.js?v=1794753082"></script>
 </head>
 <body>
   <div id="app">
@@ -53,6 +53,12 @@
         <div class="card"><div class="bars" id="historyBars"></div></div>
       </section>
 
+      <!-- Рационы -->
+      <section class="tab" id="tab-rations">
+        <div class="card ration-intro" id="rationIntro"></div>
+        <div id="rationList"></div>
+      </section>
+
       <!-- Меню -->
       <section class="tab" id="tab-menu">
         <div class="card menu-head" id="menuHead"></div>
@@ -83,6 +89,7 @@
 
     <nav class="tabs">
       <button data-tab="today" class="active"><span class="ic">🍽</span>Сегодня</button>
+      <button data-tab="rations"><span class="ic">🥗</span>Рационы</button>
       <button data-tab="menu"><span class="ic">📋</span>Меню</button>
       <button data-tab="progress"><span class="ic">📈</span>Прогресс</button>
     </nav>
@@ -135,7 +142,22 @@
     </div>
   </div>
 
+  <!-- Рацион -->
+  <div class="sheet hidden" id="rationSheet">
+    <div class="sheet-body">
+      <div class="sheet-top">
+        <div><div class="q-title" id="raTitle"></div><div class="muted" id="raSub"></div></div>
+        <button class="close" data-close>✕</button>
+      </div>
+      <div class="seg" id="raSeg">
+        <button data-v="meals" class="on">Блюда</button>
+        <button data-v="shop">🛒 Список покупок</button>
+      </div>
+      <div class="results" id="raBody"></div>
+    </div>
+  </div>
+
   <div class="toast hidden" id="toast"></div>
-  <script src="app.js?v=1794752900"></script>
+  <script src="app.js?v=1794753082"></script>
 </body>
 </html>
