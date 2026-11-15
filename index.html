@@ -7,9 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="app.css?v=1794752060">
-  <script src="https://telegram.org/js/telegram-web-app.js?v=1794752060"></script>
-  <script src="config.js?v=1794752060"></script>
+  <link rel="stylesheet" href="app.css?v=1794752900">
+  <script src="https://telegram.org/js/telegram-web-app.js?v=1794752900"></script>
+  <script src="config.js?v=1794752900"></script>
 </head>
 <body>
   <div id="app">
@@ -47,6 +47,7 @@
           <button class="link" id="addBtnTop">+ Добавить</button>
         </div>
         <div class="list" id="todayList"></div>
+        <div class="finish" id="finishBox"></div>
 
         <div class="section-head"><h2>Последние 14 дней</h2></div>
         <div class="card"><div class="bars" id="historyBars"></div></div>
@@ -59,19 +60,6 @@
         <div id="dayMeals"></div>
       </section>
 
-      <!-- Отчёт -->
-      <section class="tab" id="tab-report">
-        <div class="card">
-          <h2>Отчёт тренеру</h2>
-          <div class="muted" style="margin-top:4px">Фото дневника, тарелки или весов — до 5 фото. Тренер сразу получит их в Telegram.</div>
-          <div class="photos" id="photos"></div>
-          <input type="file" id="photoInput" accept="image/*" multiple hidden>
-          <textarea id="reportText" rows="3" placeholder="Комментарий для тренера (необязательно)"></textarea>
-          <button class="btn primary full" id="sendReport">Отправить тренеру</button>
-        </div>
-        <div class="section-head"><h2>Мои отчёты</h2></div>
-        <div class="list" id="reportList"></div>
-      </section>
 
       <!-- Прогресс -->
       <section class="tab" id="tab-progress">
@@ -96,7 +84,6 @@
     <nav class="tabs">
       <button data-tab="today" class="active"><span class="ic">🍽</span>Сегодня</button>
       <button data-tab="menu"><span class="ic">📋</span>Меню</button>
-      <button data-tab="report"><span class="ic">📸</span>Отчёт</button>
       <button data-tab="progress"><span class="ic">📈</span>Прогресс</button>
     </nav>
     <button class="fab" id="fab" aria-label="Добавить продукт">+</button>
@@ -149,6 +136,6 @@
   </div>
 
   <div class="toast hidden" id="toast"></div>
-  <script src="app.js?v=1794752060"></script>
+  <script src="app.js?v=1794752900"></script>
 </body>
 </html>

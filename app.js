@@ -110,7 +110,7 @@
     $('#hello').textContent = 'Привет, ' + data.me.name + '!';
     $('#sub').textContent = `${DAYS[(d.getDay() + 6) % 7]}, ${d.getDate()} ${MONTHS[d.getMonth()]}` + (data.me.target ? ` · цель ${fmt(data.me.target)} ккал` : '');
     $('#demoBanner').classList.toggle('hidden', !data.demo);
-    renderToday(); renderHistory(); renderMenu(); renderProgress(); renderReports();
+    renderToday(); renderHistory(); renderMenu(); renderProgress();
   }
 
   /* ---------- Сегодня ---------- */
@@ -125,11 +125,18 @@
     $('#kcalNum').textContent = fmt(t.kcal);
     $('#kcalCap').textContent = target ? 'из ' + fmt(target) + ' ккал' : 'ккал';
     $('#leftLabel').textContent = !target ? '' : t.kcal <= target ? `Осталось ${fmt(target - t.kcal)} ккал` : `Сверх цели +${fmt(t.kcal - target)} ккал`;
+    // БЖУ: если тренер задал «планку» — показываем «съедено / цель», иначе — доли в калориях
     const kcalOf = { p: 4, f: 9, c: 4 };
     const total = Math.max(1, t.p * 4 + t.f * 9 + t.c * 4);
-    $('#macros').innerHTML = [['p', 'Белки'], ['f', 'Жиры'], ['c', 'Углеводы']].map(([k, n]) =>
-      `<div class="macro"><div class="macro-top"><span>${n}</span><b>${fmt(t[k], 0)} г</b></div>
-       <div class="bar"><i style="width:${Math.round(t[k] * kcalOf[k] / total * 100)}%;background:var(--${k})"></i></div></div>`).join('');
+    const goals = { p: state.me.tP, f: state.me.tF, c: state.me.tC };
+    $('#macros').innerHTML = [['p', 'Белки'], ['f', 'Жиры'], ['c', 'Углеводы']].map(([k, n]) => {
+      const g = goals[k];
+      const w = g ? Math.min(100, t[k] / g * 100) : t[k] * kcalOf[k] / total * 100;
+      const over = g && t[k] > g * 1.15;
+      return `<div class="macro"><div class="macro-top"><span>${n}</span><b>${fmt(t[k], 0)}${g ? ' / ' + fmt(g) : ''} г</b></div>
+       <div class="bar"><i style="width:${Math.round(w)}%;background:${over ? 'var(--bad)' : 'var(--' + k + ')'}"></i></div></div>`;
+    }).join('');
+    renderFinish();
 
     const list = $('#todayList');
     if (!t.items.length) {
@@ -144,6 +151,23 @@
         <button class="del" data-del="${i}" aria-label="Удалить">×</button>
       </div>`).join('');
   }
+
+  function renderFinish() {
+    const box = $('#finishBox');
+    if (!state.today.items.length) { box.innerHTML = ''; return; }
+    box.innerHTML = state.dayReportAt
+      ? `<button class="btn full" id="finishBtn">Отправить тренеру ещё раз</button><div class="done"><b>✓ Дневник отправлен тренеру в ${esc(state.dayReportAt)}</b><br>Если что-то добавили — отправьте заново.</div>`
+      : `<button class="btn primary full" id="finishBtn">✅ Завершить день — отправить тренеру</button>`;
+  }
+  $('#finishBox').addEventListener('click', async e => {
+    const b = e.target.closest('#finishBtn'); if (!b) return;
+    if (!state.dayReportAt && !(await confirmAsk('Отправить тренеру дневник за сегодня?'))) return;
+    b.disabled = true; b.textContent = 'Отправляю…';
+    try {
+      const r = await api('finishDay');
+      state.dayReportAt = r.sentAt; saveCache(); renderFinish(); haptic('ok'); toast('Дневник отправлен тренеру ✅');
+    } catch (err) { toast(err.message); renderFinish(); }
+  });
 
   $('#todayList').addEventListener('click', async e => {
     const b = e.target.closest('[data-del]'); if (!b) return;
@@ -388,78 +412,11 @@
     finally { btn.disabled = false; btn.textContent = 'Сохранить замер'; }
   });
 
-  /* ---------- Отчёт тренеру ---------- */
-  const MAX_PHOTOS = 5;
-  let photos = []; // dataURL сжатых JPEG
-
-  function renderPhotos() {
-    $('#photos').innerHTML = photos.map((src, i) => `<div class="ph"><img src="${src}" alt=""><button data-rm="${i}" aria-label="Убрать">×</button></div>`).join('') +
-      (photos.length < MAX_PHOTOS ? `<button class="add-ph" id="addPhoto"><b>+</b>${photos.length ? 'Ещё фото' : 'Добавить фото'}</button>` : '');
-  }
-  $('#photos').addEventListener('click', e => {
-    const rm = e.target.closest('[data-rm]');
-    if (rm) { photos.splice(+rm.dataset.rm, 1); renderPhotos(); return; }
-    if (e.target.closest('#addPhoto')) $('#photoInput').click();
-  });
-
-  // Сжимаем на телефоне: длинная сторона до 1600 px, JPEG 80% — фото весит ~200–400 КБ вместо 3–5 МБ
-  function compress(file) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      const url = URL.createObjectURL(file);
-      img.onload = () => {
-        const k = Math.min(1, 1600 / Math.max(img.width, img.height));
-        const c = document.createElement('canvas');
-        c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
-        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-        URL.revokeObjectURL(url);
-        resolve(c.toDataURL('image/jpeg', 0.8));
-      };
-      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Не удалось открыть фото')); };
-      img.src = url;
-    });
-  }
-  $('#photoInput').addEventListener('change', async e => {
-    const files = Array.from(e.target.files || []).slice(0, MAX_PHOTOS - photos.length);
-    e.target.value = '';
-    for (const f of files) {
-      try { photos.push(await compress(f)); } catch (err) { toast(err.message); }
-    }
-    if ((e.target.files || []).length > files.length) toast('Не больше ' + MAX_PHOTOS + ' фото за раз');
-    renderPhotos();
-  });
-
-  $('#sendReport').addEventListener('click', async () => {
-    const text = $('#reportText').value.trim();
-    if (!photos.length && !text) { toast('Добавьте фото или напишите комментарий'); return; }
-    const btn = $('#sendReport');
-    btn.disabled = true; btn.textContent = photos.length ? 'Отправляю фото…' : 'Отправляю…';
-    try {
-      const r = await api('report', { text, photos });
-      state.reports = r.reports; saveCache();
-      photos = []; $('#reportText').value = '';
-      renderPhotos(); renderReports(); haptic('ok'); toast('Отчёт отправлен тренеру ✅');
-    } catch (err) { toast(err.message); }
-    finally { btn.disabled = false; btn.textContent = 'Отправить тренеру'; }
-  });
-
-  function renderReports() {
-    renderPhotos();
-    const list = state.reports || [];
-    $('#reportList').innerHTML = list.length ? list.map(r => {
-      const d = parseDate(r.date);
-      const isPhoto = /фото/.test(r.type);
-      return `<div class="item rep"><div class="ic">${isPhoto ? '📸' : '💬'}</div>
-        <div><div class="name">${d.getDate()} ${MONTHS[d.getMonth()]}, ${esc(r.time)}</div>
-        <div class="meta">${esc(r.text && r.text !== '[фото]' ? r.text : r.type)}</div></div></div>`;
-    }).join('') : '<div class="empty">Отчётов пока нет</div>';
-  }
-
   /* ---------- Вкладки ---------- */
   function switchTab(name) {
     $$('.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
     $$('.tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + name));
-    $('#fab').classList.toggle('hidden', name === 'progress' || name === 'report');
+    $('#fab').classList.toggle('hidden', name === 'progress');
     window.scrollTo(0, 0);
   }
   $$('.tabs button').forEach(b => b.addEventListener('click', () => { switchTab(b.dataset.tab); haptic(); }));
@@ -467,7 +424,7 @@
   // Ссылка вида …/#menu открывает нужную вкладку (так бот может вести сразу в меню)
   function openFromHash() {
     const h = (location.hash || '').slice(1) || (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || '';
-    if (['today', 'menu', 'progress', 'report'].includes(h)) switchTab(h);
+    if (['today', 'menu', 'progress'].includes(h)) switchTab(h);
     if (h === 'add') openAdd();
   }
 
