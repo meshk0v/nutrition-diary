@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <title>Дневник питания</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="config.js"></script>
+</head>
+<body>
+  <div id="app">
+    <header class="top">
+      <div>
+        <div class="hello" id="hello">Дневник питания</div>
+        <div class="sub" id="sub">Загрузка…</div>
+      </div>
+      <div class="sync" id="sync" title="Синхронизация"></div>
+    </header>
+    <div class="banner hidden" id="demoBanner">Демо-режим: показан тестовый участник. В Telegram откроются ваши данные.</div>
+
+    <main>
+      <!-- Сегодня -->
+      <section class="tab active" id="tab-today">
+        <div class="card hero">
+          <div class="ring-wrap">
+            <svg viewBox="0 0 120 120" class="ring">
+              <circle cx="60" cy="60" r="52" class="ring-bg"/>
+              <circle cx="60" cy="60" r="52" class="ring-fg" id="ringFg"/>
+            </svg>
+            <div class="ring-text">
+              <div class="ring-num" id="kcalNum">—</div>
+              <div class="ring-cap" id="kcalCap">ккал</div>
+            </div>
+          </div>
+          <div class="hero-side">
+            <div class="left-label" id="leftLabel"></div>
+            <div class="macros" id="macros"></div>
+          </div>
+        </div>
+
+        <div class="section-head">
+          <h2>Съедено сегодня</h2>
+          <button class="link" id="addBtnTop">+ Добавить</button>
+        </div>
+        <div class="list" id="todayList"></div>
+
+        <div class="section-head"><h2>Последние 14 дней</h2></div>
+        <div class="card"><div class="bars" id="historyBars"></div></div>
+      </section>
+
+      <!-- Меню -->
+      <section class="tab" id="tab-menu">
+        <div class="card menu-head" id="menuHead"></div>
+        <div class="days" id="dayChips"></div>
+        <div id="dayMeals"></div>
+      </section>
+
+      <!-- Прогресс -->
+      <section class="tab" id="tab-progress">
+        <div class="card">
+          <div class="section-head inner"><h2>Вес</h2><span class="muted" id="weightDelta"></span></div>
+          <div id="weightChart" class="chart"></div>
+        </div>
+        <div class="card" id="lastMeasure"></div>
+        <div class="card">
+          <h2>Новый замер</h2>
+          <form id="measureForm" class="grid4">
+            <label>Вес, кг<input name="weight" inputmode="decimal" required></label>
+            <label>Грудь, см<input name="chest" inputmode="decimal"></label>
+            <label>Талия, см<input name="waist" inputmode="decimal"></label>
+            <label>Бёдра, см<input name="hips" inputmode="decimal"></label>
+            <button class="btn primary full" type="submit">Сохранить замер</button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <nav class="tabs">
+      <button data-tab="today" class="active"><span class="ic">🍽</span>Сегодня</button>
+      <button data-tab="menu"><span class="ic">📋</span>Меню</button>
+      <button data-tab="progress"><span class="ic">📈</span>Прогресс</button>
+    </nav>
+    <button class="fab" id="fab" aria-label="Добавить продукт">+</button>
+  </div>
+
+  <!-- Добавление продукта -->
+  <div class="sheet hidden" id="addSheet">
+    <div class="sheet-body">
+      <div class="sheet-top">
+        <input id="search" placeholder="Поиск: гречка, омлет, творог…" autocomplete="off">
+        <button class="close" data-close>✕</button>
+      </div>
+      <div class="filters" id="filters">
+        <button data-f="all" class="on">Все</button>
+        <button data-f="r">Рецепты</button>
+        <button data-f="p">Продукты</button>
+      </div>
+      <div class="results" id="results"></div>
+    </div>
+  </div>
+
+  <!-- Количество -->
+  <div class="sheet hidden" id="qtySheet">
+    <div class="sheet-body compact">
+      <div class="sheet-top">
+        <div><div class="q-title" id="qTitle"></div><div class="muted" id="qPer"></div></div>
+        <button class="close" data-close>✕</button>
+      </div>
+      <div class="units" id="units"></div>
+      <div class="qty-row">
+        <button class="step" data-step="-1">−</button>
+        <input id="qty" inputmode="decimal">
+        <button class="step" data-step="1">+</button>
+      </div>
+      <div class="chips" id="quick"></div>
+      <div class="preview" id="preview"></div>
+      <button class="btn primary full" id="addConfirm">Добавить в дневник</button>
+    </div>
+  </div>
+
+  <!-- Рецепт -->
+  <div class="sheet hidden" id="recipeSheet">
+    <div class="sheet-body compact">
+      <div class="sheet-top">
+        <div class="q-title" id="rTitle"></div>
+        <button class="close" data-close>✕</button>
+      </div>
+      <div id="rBody"></div>
+    </div>
+  </div>
+
+  <div class="toast hidden" id="toast"></div>
+  <script src="app.js"></script>
+</body>
+</html>
