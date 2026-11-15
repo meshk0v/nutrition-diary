@@ -31,6 +31,8 @@
     document.documentElement.dataset.theme = tg.colorScheme || 'light';
     tg.onEvent('themeChanged', () => { document.documentElement.dataset.theme = tg.colorScheme; });
     try { tg.setHeaderColor('secondary_bg_color'); } catch (e) {}
+    // свайп вниз не сворачивает приложение — иначе оно закрывается при прокрутке окон
+    try { if (tg.disableVerticalSwipes) tg.disableVerticalSwipes(); } catch (e) {}
   }
 
   /* ---------- API ---------- */
@@ -153,13 +155,29 @@
   }
 
   /* ---------- Нижние окна (рецепт, рацион) ---------- */
+  // Пока открыто окно — фон не прокручивается: фиксируем body на текущей позиции (надёжно и в iOS-webview Telegram)
+  let lockedY = 0;
+  function lockScroll() {
+    if (document.body.classList.contains('sheet-open')) return;
+    lockedY = window.scrollY;
+    document.body.style.top = -lockedY + 'px';
+    document.body.classList.add('sheet-open');
+  }
+  function unlockScroll() {
+    if (!document.body.classList.contains('sheet-open')) return;
+    document.body.classList.toggle('sheet-open', false);
+    document.body.style.top = '';
+    window.scrollTo(0, lockedY);
+  }
   function openSheet(id) {
     $$('.sheet').forEach(s => s.classList.add('hidden'));
-    $(id).classList.remove('hidden');
+    $(id).classList.toggle('hidden', false);
+    lockScroll();
     if (tg && tg.BackButton) { tg.BackButton.show(); }
   }
   function closeSheets() {
     $$('.sheet').forEach(s => s.classList.add('hidden'));
+    unlockScroll();
     if (tg && tg.BackButton) tg.BackButton.hide();
   }
   if (tg && tg.BackButton) tg.BackButton.onClick(closeSheets);

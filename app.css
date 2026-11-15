@@ -247,6 +247,9 @@ h2 { font-size: 16px; font-weight: 700; margin: 0; }
 .fab { position: fixed; right: max(16px, calc(50% - 264px)); bottom: calc(80px + env(safe-area-inset-bottom)); width: 56px; height: 56px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 30px; line-height: 1; box-shadow: 0 8px 22px rgba(46,156,98,.35); z-index: 6; }
 
 /* Листы снизу */
+body.sheet-open { position: fixed; left: 0; right: 0; width: 100%; overflow: hidden; }
+.sheet { overscroll-behavior: contain; }
+.sheet-body, .results { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 .sheet { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 20; display: flex; align-items: flex-end; justify-content: center; animation: fadeBg .15s; }
 @keyframes fadeBg { from { background: rgba(0,0,0,0); } }
 .sheet-body { background: var(--card); width: 100%; max-width: 560px; height: 88vh; border-radius: 22px 22px 0 0; padding: 14px 16px calc(16px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; animation: up .22s ease; }
