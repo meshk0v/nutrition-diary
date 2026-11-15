@@ -7,7 +7,10 @@
   const API = window.APP_CONFIG.api;
   const DAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
   const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-  const CACHE_KEY = 'nutrition-app-v1';
+  // Кэш привязан к пользователю Telegram (в демо — отдельный), чтобы не показать чужие данные
+  const tgUserId = inTelegram && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 'demo';
+  const CACHE_KEY = 'nutrition-app-v2-' + tgUserId;
+  try { localStorage.removeItem('nutrition-app-v1'); } catch (e) {}
 
   let state = null;          // ответ init
   let items = [];            // справочник [{name, type, kcal, p, f, c, portion}]
@@ -72,8 +75,11 @@
       saveCache();
       openFromHash();
     } catch (e) {
-      if (!state) showError(e);
-      else toast('Нет связи с таблицей, показаны сохранённые данные');
+      // Ошибки доступа (нет в группе, не удалось войти, участие завершено) — всегда показываем, кэш стираем
+      if (!state || ['not_registered', 'unauthorized', 'finished', 'no_demo'].includes(e.code)) {
+        try { localStorage.removeItem(CACHE_KEY); } catch (err) {}
+        showError(e);
+      } else toast('Нет связи с таблицей, показаны сохранённые данные');
     }
   }
 
@@ -98,6 +104,7 @@
 
   function apply(data) {
     state = data;
+    if (inTelegram && data.demo) data.demo = false;
     items = (data.items || []).map(a => ({ name: a[0], type: a[1], kcal: a[2], p: a[3], f: a[4], c: a[5], portion: a[6] || 0 }));
     const d = parseDate(data.date);
     $('#hello').textContent = 'Привет, ' + data.me.name + '!';
