@@ -128,18 +128,10 @@
 
   // Заглушка «Приложение в разработке» (тренер включает/выключает в «Настройках»)
   function showMaintenance(e) {
-    $('#hello').textContent = 'Скоро откроемся';
-    $('#sub').textContent = '';
+    $('.top').classList.add('hidden');
     $('#demoBanner').classList.add('hidden');
     $('.tabs').classList.add('hidden');
-    const lines = String(e.message || '').split('\n').map(l => esc(l)).join('<br>');
-    $('main').innerHTML = `<div class="dev-box">
-      <div class="dev-ic">🚧</div>
-      <h2>Приложение в разработке</h2>
-      <p>${lines}</p>
-      <div class="dev-list"><span>📝 Отчёт</span><span>📋 Меню</span><span>📏 Замеры</span><span>📊 Итоги</span></div>
-      <button class="btn" onclick="location.reload()">Проверить ещё раз</button>
-    </div>`;
+    $('main').innerHTML = `<div class="dev-box">${esc(e.message || 'Приложение в разработке 🚧')}</div>`;
   }
 
   function showError(e) {
