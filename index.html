@@ -59,6 +59,20 @@
         <div id="dayMeals"></div>
       </section>
 
+      <!-- Отчёт -->
+      <section class="tab" id="tab-report">
+        <div class="card">
+          <h2>Отчёт тренеру</h2>
+          <div class="muted" style="margin-top:4px">Фото дневника, тарелки или весов — до 5 фото. Тренер сразу получит их в Telegram.</div>
+          <div class="photos" id="photos"></div>
+          <input type="file" id="photoInput" accept="image/*" multiple hidden>
+          <textarea id="reportText" rows="3" placeholder="Комментарий для тренера (необязательно)"></textarea>
+          <button class="btn primary full" id="sendReport">Отправить тренеру</button>
+        </div>
+        <div class="section-head"><h2>Мои отчёты</h2></div>
+        <div class="list" id="reportList"></div>
+      </section>
+
       <!-- Прогресс -->
       <section class="tab" id="tab-progress">
         <div class="card">
@@ -82,6 +96,7 @@
     <nav class="tabs">
       <button data-tab="today" class="active"><span class="ic">🍽</span>Сегодня</button>
       <button data-tab="menu"><span class="ic">📋</span>Меню</button>
+      <button data-tab="report"><span class="ic">📸</span>Отчёт</button>
       <button data-tab="progress"><span class="ic">📈</span>Прогресс</button>
     </nav>
     <button class="fab" id="fab" aria-label="Добавить продукт">+</button>
