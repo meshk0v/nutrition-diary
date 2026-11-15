@@ -36,9 +36,7 @@
   }
 
   /* ---------- API ---------- */
-  let pending = 0;
   async function api(action, data = {}) {
-    pending++; $('#sync').classList.add('busy');
     try {
       const res = await fetch(API, {
         method: 'POST',
@@ -48,9 +46,7 @@
       const json = await res.json();
       if (json.error) throw Object.assign(new Error(json.message || json.error), { code: json.error, id: json.id, anketa: json.anketa, anketaSent: json.anketaSent });
       return json;
-    } finally {
-      if (--pending === 0) $('#sync').classList.remove('busy');
-    }
+    } finally { /* индикатор загрузки убран — состояние видно по кнопкам («Отправляю…») */ }
   }
 
   function toast(text) {
