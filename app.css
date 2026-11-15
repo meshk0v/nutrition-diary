@@ -145,6 +145,15 @@ h2 { font-size: 16px; font-weight: 700; margin: 0; }
 .days-mult button.on { background: var(--accent); color: #fff; }
 
 /* Отчёт дня */
+.rep-head { margin: 4px 2px 12px; }
+.rep-head .t { font-size: 20px; font-weight: 800; letter-spacing: -.01em; line-height: 1.25; }
+.rep-head .t span { color: var(--accent); }
+.rep-head .s { color: var(--muted); font-size: 13px; margin-top: 3px; }
+.rep-head .back { color: var(--accent); font-weight: 700; font-size: 14px; padding: 6px 0 0; }
+.late { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: rgba(224, 137, 43, .14); color: var(--text);
+  border-radius: 14px; padding: 12px 14px; margin-bottom: 12px; font-size: 13.5px; }
+.late b { color: var(--warn); }
+.late .go { margin-left: auto; white-space: nowrap; font-weight: 800; color: var(--warn); }
 .plan { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; text-align: center; padding: 12px; }
 .plan b { display: block; font-size: 17px; }
 .plan small { color: var(--muted); font-size: 11.5px; }

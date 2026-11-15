@@ -7,9 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="app.css?v=1794764281">
-  <script src="https://telegram.org/js/telegram-web-app.js?v=1794764281"></script>
-  <script src="config.js?v=1794764281"></script>
+  <link rel="stylesheet" href="app.css?v=1794764829">
+  <script src="https://telegram.org/js/telegram-web-app.js?v=1794764829"></script>
+  <script src="config.js?v=1794764829"></script>
 </head>
 <body>
   <div id="app">
@@ -25,10 +25,7 @@
     <main>
       <!-- Отчёт дня (формат тренера) -->
       <section class="tab active" id="tab-report">
-        <div class="seg" id="repDay">
-          <button data-day="today" class="on">Сегодня</button>
-          <button data-day="yesterday">Вчера</button>
-        </div>
+        <div id="repDay"></div>
         <div class="card plan" id="planCard"></div>
         <div id="repStatus"></div>
         <form id="reportForm" class="card rep-form" autocomplete="off"></form>
@@ -165,6 +162,6 @@
   </div>
 
   <div class="toast hidden" id="toast"></div>
-  <script src="app.js?v=1794764281"></script>
+  <script src="app.js?v=1794764829"></script>
 </body>
 </html>

@@ -630,13 +630,23 @@
 
   function renderReport(fromDiary) {
     renderPlan();
-    $$('#repDay button').forEach(b => b.classList.toggle('on', b.dataset.day === repDay));
     const r = dayReport();
-    const dDate = parseDate(state.date); if (repDay === 'yesterday') dDate.setDate(dDate.getDate() - 1);
+    const WD = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
+    const tDate = parseDate(state.date), yDate = parseDate(state.date); yDate.setDate(yDate.getDate() - 1);
+    const dDate = repDay === 'yesterday' ? yDate : tDate;
     const label = `${dDate.getDate()} ${MONTHS[dDate.getMonth()]}`;
+    const yLabel = `${yDate.getDate()} ${MONTHS[yDate.getMonth()]}`;
+    // Плашка «за вчера» — только если вчерашний отчёт не сдан и человек уже участвовал вчера (не стартовал сегодня)
+    const yMissing = !(state.daily || {}).yesterday && !(state.me.start && state.me.start >= state.date);
+    // Заголовок с датой: за какой день этот отчёт. «Вчера» показывается, только если вчерашний отчёт не сдан
+    $('#repDay').innerHTML = repDay === 'today'
+      ? (yMissing ? `<button class="late" id="goYesterday">⚠️ <span>За вчера, <b>${yLabel}</b>, отчёт не сдан</span><span class="go">Заполнить →</span></button>` : '') +
+        `<div class="rep-head"><div class="t">Отчёт за <span>сегодня</span>, ${WD[dDate.getDay()]} ${label}</div><div class="s">Отправьте до 0:00</div></div>`
+      : `<div class="rep-head"><div class="t">Отчёт за <span>вчера</span>, ${WD[dDate.getDay()]} ${label}</div>
+          <div class="s">Опоздавший отчёт запишется на ${label}</div><button class="back" id="goToday">← к отчёту за сегодня</button></div>`;
     $('#repStatus').innerHTML = r
       ? `<div class="rep-status ok">✓ Отчёт за ${label} отправлен${r.sentAt ? ' в ' + esc(r.sentAt) : ''}. Можно исправить и отправить заново.</div>`
-      : `<div class="rep-status todo">${repDay === 'today' ? 'Отчёт за сегодня — до 0:00' : 'Отчёт за вчера ещё не отправлен'}</div>`;
+      : '';
     const v = r || {};
     const dia = dayDiary();
     const useDiary = fromDiary && dia && dia.items && dia.items.length;
@@ -674,11 +684,16 @@
         <div class="photos" id="repPhotos" style="margin-top:8px"></div></div>
       <div class="fld"><div class="lbl">💬 Комментарий для тренера</div>
         <textarea name="note" rows="2" placeholder="необязательно">${esc(v.note || '')}</textarea></div>
-      <button class="btn primary full" type="submit">${r ? 'Отправить исправленный отчёт' : 'Отправить отчёт тренеру'}</button>`;
+      <button class="btn primary full" type="submit">${r ? 'Отправить исправленный отчёт' : 'Отправить отчёт за ' + (repDay === 'today' ? 'сегодня' : 'вчера, ' + label)}</button>`;
     repPhotos = photoPicker($('#repPhotos'), 3, 'скриншот');
   }
 
-  $('#repDay').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; repDay = b.dataset.day; renderReport(); haptic(); });
+  $('#repDay').addEventListener('click', e => {
+    if (e.target.closest('#goYesterday')) repDay = 'yesterday';
+    else if (e.target.closest('#goToday')) repDay = 'today';
+    else return;
+    renderReport(); window.scrollTo(0, 0); haptic();
+  });
   $('#reportForm').addEventListener('click', e => {
     const h = e.target.closest('[data-h]');
     if (h) {
@@ -703,6 +718,7 @@
       state.daily = state.daily || {};
       state.daily[repDay] = r.report;
       if (r.weights) state.weights = r.weights;
+      if (repDay === 'yesterday') repDay = 'today';
       saveCache(); renderReport(); renderProgress(); window.scrollTo(0, 0);
       haptic('ok'); toast(r.delivered === false ? 'Отчёт сохранён в таблицу' : 'Отчёт отправлен тренеру ✅');
     } catch (err) { toast(err.message); btn.disabled = false; btn.textContent = 'Отправить отчёт тренеру'; }
