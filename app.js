@@ -510,7 +510,11 @@
     const w = (state.weights && state.weights.length ? state.weights : (state.measures || []).filter(m => m.weight)).filter(m => m.weight);
     const chart = $('#weightChart');
     if (w.length < 2) {
-      chart.innerHTML = `<div class="empty">${w.length ? 'Нужно ещё хотя бы одно взвешивание, чтобы построить график' : 'Вес появится здесь из отчётов и замеров'}</div>`;
+      // График строится по дням (за день — последнее взвешивание), поэтому для линии нужны минимум два разных дня
+      const one = w.length ? parseDate(w[0].date) : null;
+      chart.innerHTML = `<div class="empty">${one
+        ? `Пока есть вес только за ${one.getDate()} ${MONTHS[one.getMonth()]}. График появится, когда будет вес ещё за один день — из отчёта (вес утром) или замеров.`
+        : 'Вес появится здесь из ежедневных отчётов (вес утром) и воскресных замеров.'}</div>`;
       $('#weightDelta').textContent = '';
     } else {
       const W = 320, H = 170, pad = { l: 30, r: 10, t: 12, b: 22 };
