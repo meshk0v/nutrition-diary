@@ -690,8 +690,8 @@
   function openFromHash() {
     const h = (location.hash || '').slice(1) || (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || '';
     // старые ссылки (#today, #add) ведут на отчёт
-    const tab = h === 'today' || h === 'add' ? 'report' : h;
-    if (['report', 'results', 'rations', 'menu', 'progress'].includes(tab)) switchTab(tab);
+    const tab = h === 'today' || h === 'add' ? 'report' : h === 'rations' ? 'menu' : h;
+    if (['report', 'results', 'menu', 'progress'].includes(tab)) switchTab(tab);
   }
 
   init();
