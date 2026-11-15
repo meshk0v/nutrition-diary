@@ -47,7 +47,7 @@
         body: JSON.stringify(Object.assign({ action, initData: inTelegram ? tg.initData : '', demo: !inTelegram }, data))
       });
       const json = await res.json();
-      if (json.error) throw Object.assign(new Error(json.message || json.error), { code: json.error });
+      if (json.error) throw Object.assign(new Error(json.message || json.error), { code: json.error, id: json.id });
       return json;
     } finally {
       if (--pending === 0) $('#sync').classList.remove('busy');
@@ -89,7 +89,7 @@
 
   function showError(e) {
     const msgs = {
-      not_registered: ['🙋', 'Вас пока нет в группе', e.message],
+      not_registered: ['🙋', 'Вас пока нет в группе', 'Передайте тренеру ваш Telegram ID: ' + (e.id || '—') + '. После добавления откройте дневник снова.'],
       unauthorized: ['🔒', 'Не удалось войти', e.message],
       finished: ['👋', 'Участие завершено', e.message],
       no_demo: ['📱', 'Откройте из Telegram', e.message]
