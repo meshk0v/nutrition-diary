@@ -145,7 +145,7 @@
     $('#hello').textContent = 'Привет, ' + data.me.name + '!';
     $('#sub').textContent = `${DAYS[(d.getDay() + 6) % 7]}, ${d.getDate()} ${MONTHS[d.getMonth()]}` + (data.me.target ? ` · план ${fmt(data.me.target)} ккал` : '');
     $('#demoBanner').classList.toggle('hidden', !data.demo);
-    renderReport(); renderMenu(); renderRations(); renderProgress();
+    renderReport(); renderResults(); renderMenu(); renderRations(); renderProgress();
   }
 
   function confirmAsk(text) {
@@ -215,6 +215,126 @@
       ${r.desc ? `<p class="desc">${esc(r.desc)}</p>` : ''}
       <div class="muted" style="margin:10px 0 4px">Весь рецепт: ${r.portions} порц.; граммы — в сыром виде.</div>`;
     openSheet('#recipeSheet');
+  }
+
+  /* ---------- Итоги (прогресс участника) ---------- */
+  const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const sign = (v, d = 1) => (v > 0 ? '+' : v < 0 ? '−' : '') + fmt(Math.abs(v), d);
+
+  function upsertHistory(rep) {
+    if (!rep) return;
+    state.history60 = (state.history60 || []).filter(x => x.date !== rep.date);
+    const n = k => (rep[k] === '' || rep[k] == null ? null : Number(rep[k]));
+    state.history60.push({ date: rep.date, kcal: n('kcal'), p: n('p'), f: n('f'), c: n('c'), hunger: n('hunger'), weight: n('weight'), steps: n('steps'), water: n('water'), tea: n('tea'), veg: n('veg') });
+    state.history60.sort((a, b) => (a.date < b.date ? -1 : 1));
+  }
+
+  // последние n дней (с сегодняшним), но не раньше старта участника
+  function lastDays(n) {
+    const out = [], t = parseDate(state.date), start = state.me.start || '';
+    for (let i = n - 1; i >= 0; i--) {
+      const d = new Date(t); d.setDate(d.getDate() - i);
+      const key = ymd(d);
+      if (!start || key >= start) out.push({ key, d });
+    }
+    return out;
+  }
+
+  /** Столбики по дням. target — число (линия), band — {min,max} (полоса), okFn(v) — в норме ли. */
+  function barChart(days, values, opt) {
+    const W = 320, H = 150, padB = 18, padT = 8;
+    const vmax = Math.max(1, ...values.filter(v => v != null), opt.target || 0, opt.band ? opt.band.max : 0) * 1.12;
+    const y = v => padT + (H - padT - padB) * (1 - v / vmax);
+    const bw = (W / days.length) * 0.66, step = W / days.length;
+    let svg = '';
+    if (opt.band) svg += `<rect class="band" x="0" y="${y(opt.band.max)}" width="${W}" height="${Math.max(2, y(opt.band.min) - y(opt.band.max))}" rx="3"/>`;
+    days.forEach((dd, i) => {
+      const v = values[i], x = i * step + (step - bw) / 2;
+      const cls = v == null ? 'none' : opt.okFn(v) ? 'ok' : 'off';
+      const h = v == null ? 3 : Math.max(3, H - padB - y(v));
+      svg += `<rect class="${cls}" x="${x.toFixed(1)}" y="${(H - padB - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="3"><title>${dd.d.getDate()}.${dd.d.getMonth() + 1}: ${v == null ? 'нет отчёта' : fmt(v)}</title></rect>`;
+      if (days.length <= 14 || i % 2 === 0) svg += `<text class="lab" x="${(x + bw / 2).toFixed(1)}" y="${H - 4}" text-anchor="middle">${dd.d.getDate()}</text>`;
+    });
+    if (opt.target) svg += `<line class="tgt" x1="0" x2="${W}" y1="${y(opt.target)}" y2="${y(opt.target)}"/>`;
+    return `<div class="vchart"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${svg}</svg></div>`;
+  }
+
+  function renderResults() {
+    const hist = state.history60 || [];
+    const byDate = {}; hist.forEach(h => { byDate[h.date] = h; });
+    const me = state.me, corridor = state.corridor || 0.15;
+    const days14 = lastDays(14);
+
+    // --- карточки
+    const w = (state.weights || []).filter(x => x.weight);
+    const wDelta = w.length >= 2 ? w[w.length - 1].weight - w[0].weight : null;
+    const ms = state.measures || [];
+    const firstWaist = ms.find(m => m.waist), lastWaist = [...ms].reverse().find(m => m.waist);
+    const waistDelta = firstWaist && lastWaist && firstWaist !== lastWaist ? lastWaist.waist - firstWaist.waist : null;
+    const sent14 = days14.filter(d => byDate[d.key]).length;
+    let streak = 0;
+    for (const d of [...lastDays(60)].reverse()) {
+      if (byDate[d.key]) streak++;
+      else if (d.key === state.date) continue; // сегодняшний ещё можно сдать до 0:00
+      else break;
+    }
+    const goodWeight = wDelta == null ? '' : (me.goal === 'Набор массы' ? (wDelta > 0 ? 'good' : '') : (wDelta < 0 ? 'good' : wDelta > 0 ? 'bad' : ''));
+    const cards = [
+      [wDelta == null ? '—' : sign(wDelta) + ' кг', wDelta == null ? 'вес: нужно 2+ взвешивания' : 'вес с ' + parseDate(w[0].date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }), goodWeight],
+      [waistDelta == null ? '—' : sign(waistDelta) + ' см', waistDelta == null ? 'талия: нужно 2+ замера' : 'талия с первого замера', waistDelta == null ? '' : waistDelta < 0 ? 'good' : waistDelta > 0 ? 'bad' : ''],
+      [`${sent14} из ${days14.length}`, 'отчётов сдано за последние ' + days14.length + ' дн.', sent14 >= days14.length - 1 ? 'good' : ''],
+      [streak ? '🔥 ' + streak : '0', streak ? 'дней подряд с отчётом' : 'серия отчётов — начните сегодня', streak >= 3 ? 'good' : '']
+    ];
+    $('#resCards').innerHTML = cards.map(c => `<div class="res-card ${c[2]}"><b>${c[0]}</b><small>${esc(c[1])}</small></div>`).join('');
+
+    // --- калории
+    const kv = days14.map(d => (byDate[d.key] ? byDate[d.key].kcal : null));
+    const okK = v => !me.target || Math.abs(v / me.target - 1) <= corridor;
+    $('#kcalChart').innerHTML = barChart(days14, kv, { target: me.target, okFn: okK }) +
+      `<div class="legend"><span><i style="background:var(--accent)"></i>в коридоре ±${Math.round(corridor * 100)}%</span><span><i style="background:var(--warn)"></i>вне коридора</span><span><i style="background:var(--line)"></i>нет отчёта</span>${me.target ? '<span>- - цель ' + fmt(me.target) + '</span>' : ''}</div>`;
+    const kDone = kv.filter(v => v != null);
+    $('#kcalAvg').textContent = kDone.length ? 'в среднем ' + fmt(kDone.reduce((a, b) => a + b, 0) / kDone.length) + ' ккал' : '';
+
+    // --- белок
+    const pv = days14.map(d => (byDate[d.key] && byDate[d.key].p != null ? byDate[d.key].p : null));
+    const band = me.tPr && me.tPr.min !== me.tPr.max ? { min: me.tPr.min, max: me.tPr.max } : null;
+    const okP = v => !me.tPr || (band ? v >= band.min && v <= band.max * 1.1 : Math.abs(v / me.tPr.mid - 1) <= corridor);
+    $('#protChart').innerHTML = barChart(days14, pv, { band, target: band ? null : (me.tPr ? me.tPr.mid : null), okFn: okP }) +
+      `<div class="legend">${me.tPr ? `<span><i style="background:var(--accent);opacity:.35"></i>планка ${esc(me.tPr.text)} г</span>` : '<span>планку по белку тренер ещё не выдал</span>'}</div>`;
+    const pDone = pv.filter(v => v != null);
+    $('#protAvg').textContent = pDone.length ? 'в среднем ' + fmt(pDone.reduce((a, b) => a + b, 0) / pDone.length) + ' г' : '';
+
+    // --- по неделям (последние 4 недели с понедельника)
+    const today = parseDate(state.date);
+    const mon = new Date(today); mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7));
+    const weeks = [];
+    for (let k = 0; k < 4; k++) {
+      const a = new Date(mon); a.setDate(a.getDate() - 7 * k);
+      const b = new Date(a); b.setDate(b.getDate() + 6);
+      const rows = hist.filter(h => h.date >= ymd(a) && h.date <= ymd(b));
+      if (!rows.length) continue;
+      const avg = key => { const v = rows.map(r => r[key]).filter(x => x != null); return v.length ? v.reduce((x, y) => x + y, 0) / v.length : null; };
+      weeks.push({ label: k === 0 ? 'эта' : `${a.getDate()}.${String(a.getMonth() + 1).padStart(2, '0')}`, n: rows.length,
+        kcal: avg('kcal'), p: avg('p'), steps: avg('steps'), water: avg('water'), hunger: avg('hunger'), weight: avg('weight') });
+    }
+    $('#weeksTable').innerHTML = weeks.length ? `<table class="wtable"><tr><th>неделя</th><th>отчётов</th><th>ккал</th><th>белок</th><th>шаги</th><th>вода</th><th>голод</th><th>вес</th></tr>` +
+      weeks.map(x => `<tr><td>${x.label}</td><td>${x.n}/7</td><td>${fmt(x.kcal)}</td><td>${fmt(x.p)}</td><td>${x.steps != null ? fmt(x.steps / 1000, 1) + 'к' : '—'}</td><td>${fmt(x.water, 1)}</td><td>${fmt(x.hunger, 1)}</td><td>${fmt(x.weight, 1)}</td></tr>`).join('') +
+      '</table><div class="muted" style="margin-top:6px;font-size:11.5px">Средние значения по отчётам недели.</div>'
+      : '<div class="empty" style="margin-top:8px">Появится после первых отчётов</div>';
+
+    // --- замеры: первый → последний
+    if (ms.length < 2) {
+      $('#measProgress').innerHTML = `<div class="empty" style="margin-top:8px">${ms.length ? 'Нужен ещё один замер, чтобы увидеть изменения' : 'Замеров пока нет — по воскресеньям во вкладке «Замеры»'}</div>`;
+    } else {
+      const first = ms[0], last = ms[ms.length - 1];
+      $('#measProgress').innerHTML = `<div class="muted" style="margin:4px 0 2px">${parseDate(first.date).toLocaleDateString('ru-RU')} → ${parseDate(last.date).toLocaleDateString('ru-RU')}</div>` +
+        (state.metrics || []).map(([k, n, u]) => {
+          if (first[k] == null || last[k] == null) return '';
+          const d = last[k] - first[k];
+          const good = k === 'weight' && me.goal === 'Набор массы' ? d > 0 : d < 0;
+          return `<div class="mp-row"><span>${n}</span><span class="from">${fmt(first[k], 1)} →</span><b>${fmt(last[k], 1)} ${u}</b><span class="d ${d === 0 ? '' : good ? 'down' : 'up'}">${d === 0 ? '0' : sign(d)}</span></div>`;
+        }).join('');
+    }
   }
 
   /* ---------- Рационы ---------- */
@@ -381,7 +501,7 @@
     try {
       const r = await api('addMeasure', data);
       state.measures = r.measures; if (r.weights) state.weights = r.weights;
-      saveCache(); e.target.reset(); measurePhotos && measurePhotos.reset(); renderProgress(); window.scrollTo(0, 0);
+      saveCache(); e.target.reset(); measurePhotos && measurePhotos.reset(); renderProgress(); renderResults(); window.scrollTo(0, 0);
       haptic('ok'); toast(r.edited ? 'Сегодняшний замер исправлен ✅' : 'Замеры отправлены тренеру ✅');
     } catch (err) { toast(err.message); }
     finally { btn.disabled = false; btn.textContent = 'Сохранить и отправить тренеру'; }
@@ -534,7 +654,8 @@
       state.daily[repDay] = r.report;
       if (r.weights) state.weights = r.weights;
       if (repDay === 'yesterday') repDay = 'today';
-      saveCache(); renderReport(); renderProgress(); window.scrollTo(0, 0);
+      upsertHistory(r.report);
+      saveCache(); renderReport(); renderProgress(); renderResults(); window.scrollTo(0, 0);
       haptic('ok'); toast(r.delivered === false ? 'Отчёт сохранён в таблицу' : 'Отчёт отправлен тренеру ✅');
     } catch (err) { toast(err.message); btn.disabled = false; btn.textContent = 'Отправить отчёт тренеру'; }
   });
@@ -552,7 +673,7 @@
     const h = (location.hash || '').slice(1) || (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || '';
     // старые ссылки (#today, #add) ведут на отчёт
     const tab = h === 'today' || h === 'add' ? 'report' : h;
-    if (['report', 'rations', 'menu', 'progress'].includes(tab)) switchTab(tab);
+    if (['report', 'results', 'rations', 'menu', 'progress'].includes(tab)) switchTab(tab);
   }
 
   init();

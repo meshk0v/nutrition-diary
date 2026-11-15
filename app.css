@@ -188,6 +188,31 @@ h2 { font-size: 16px; font-weight: 700; margin: 0; }
 .stats7 b { display: block; font-size: 16px; }
 .stats7 small { color: var(--muted); font-size: 11px; }
 
+/* Итоги */
+.res-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.res-card { background: var(--card); border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow); }
+.res-card b { display: block; font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
+.res-card small { color: var(--muted); font-size: 12px; line-height: 1.3; display: block; margin-top: 2px; }
+.res-card.good b { color: var(--accent); }
+.res-card.bad b { color: var(--bad); }
+.vchart svg { width: 100%; height: 150px; display: block; overflow: visible; }
+.vchart .lab { fill: var(--muted); font-size: 9px; font-family: inherit; }
+.vchart .tgt { stroke: var(--muted); stroke-dasharray: 4 3; stroke-width: 1.2; opacity: .8; }
+.vchart .band { fill: var(--accent); opacity: .12; }
+.vchart .ok { fill: var(--accent); }
+.vchart .off { fill: var(--warn); }
+.vchart .none { fill: var(--line); }
+.legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+.legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+.wtable { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 8px; }
+.wtable th { color: var(--muted); font-weight: 600; text-align: right; padding: 6px 3px; font-size: 11px; }
+.wtable th:first-child, .wtable td:first-child { text-align: left; }
+.wtable td { text-align: right; padding: 8px 3px; border-top: 1px solid var(--line); white-space: nowrap; }
+.mp-row { display: grid; grid-template-columns: 1fr auto auto auto; gap: 10px; align-items: baseline; padding: 9px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.mp-row:first-child { border-top: 0; }
+.mp-row .from { color: var(--muted); font-size: 12.5px; }
+.mp-row .d { font-weight: 800; min-width: 52px; text-align: right; }
+
 /* Анкета */
 .anketa { text-align: left; }
 .anketa h3 { margin: 18px 0 8px; font-size: 15px; }

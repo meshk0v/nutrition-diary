@@ -7,9 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="app.css?v=1794765264">
-  <script src="https://telegram.org/js/telegram-web-app.js?v=1794765264"></script>
-  <script src="config.js?v=1794765264"></script>
+  <link rel="stylesheet" href="app.css?v=1794765595">
+  <script src="https://telegram.org/js/telegram-web-app.js?v=1794765595"></script>
+  <script src="config.js?v=1794765595"></script>
 </head>
 <body>
   <div id="app">
@@ -29,6 +29,15 @@
         <div class="card plan" id="planCard"></div>
         <div id="repStatus"></div>
         <form id="reportForm" class="card rep-form" autocomplete="off"></form>
+      </section>
+
+      <!-- Итоги -->
+      <section class="tab" id="tab-results">
+        <div class="res-cards" id="resCards"></div>
+        <div class="card"><div class="section-head inner"><h2>Калории за 14 дней</h2><span class="muted" id="kcalAvg"></span></div><div id="kcalChart"></div></div>
+        <div class="card"><div class="section-head inner"><h2>Белок за 14 дней</h2><span class="muted" id="protAvg"></span></div><div id="protChart"></div></div>
+        <div class="card"><h2>По неделям</h2><div id="weeksTable"></div></div>
+        <div class="card"><h2>Замеры: старт → сейчас</h2><div id="measProgress"></div></div>
       </section>
 
       <!-- Рационы -->
@@ -62,6 +71,7 @@
 
     <nav class="tabs">
       <button data-tab="report" class="active"><span class="ic">📝</span>Отчёт</button>
+      <button data-tab="results"><span class="ic">📊</span>Итоги</button>
       <button data-tab="rations"><span class="ic">🥗</span>Рационы</button>
       <button data-tab="menu"><span class="ic">📋</span>Меню</button>
       <button data-tab="progress"><span class="ic">📏</span>Замеры</button>
@@ -95,6 +105,6 @@
   </div>
 
   <div class="toast hidden" id="toast"></div>
-  <script src="app.js?v=1794765264"></script>
+  <script src="app.js?v=1794765595"></script>
 </body>
 </html>
