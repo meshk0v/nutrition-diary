@@ -138,7 +138,6 @@
       <h2>Анкета перед стартом</h2>
       <div class="muted" style="margin-top:4px">Заполните до начала — тренер по ней рассчитает ваш калораж. Ответы увидит только тренер.</div>
       ${e.anketa.map(sec => `<h3>${esc(sec[0])}</h3>` + sec[1].map(q => `<div class="fld"><div class="lbl">${esc(q[1])}</div>${field(q)}</div>`).join('')).join('')}
-      <div class="disclaimer">Программа не заменяет врача. При наличии заболеваний консультация с лечащим врачом обязательна.</div>
       <button class="btn primary full" type="submit">Отправить анкету тренеру</button></form>`;
     // Выбор из вариантов — кнопками; повторный тап снимает выбор
     $$('#anketaForm .choice').forEach(box => box.addEventListener('click', ev => {
