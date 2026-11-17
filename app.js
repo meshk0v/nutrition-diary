@@ -28,6 +28,10 @@
   if (tg) {
     tg.ready();
     tg.expand();
+    // Полный экран (Bot API 8.0+) на телефонах; на старых клиентах остаётся обычное раскрытие
+    try {
+      if (tg.requestFullscreen && /^(android|android_x|ios)$/.test(tg.platform || '') && !tg.isFullscreen) tg.requestFullscreen();
+    } catch (e) {}
     document.documentElement.dataset.theme = tg.colorScheme || 'light';
     tg.onEvent('themeChanged', () => { document.documentElement.dataset.theme = tg.colorScheme; });
     try { tg.setHeaderColor('secondary_bg_color'); } catch (e) {}
