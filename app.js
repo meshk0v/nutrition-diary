@@ -78,7 +78,20 @@
   }
   function saveCache() { try { localStorage.setItem(CACHE_KEY, JSON.stringify(state)); } catch (e) {} }
 
+  // Анимация загрузки из loader.json (LottieFiles, Lottie Simple License); при любой ошибке остаётся обычный индикатор
+  function startLoader() {
+    try {
+      if (!window.lottie) return;
+      fetch('loader.json').then(r => r.json()).then(j => {
+        if (!document.body.classList.contains('booting')) return;
+        window.lottie.loadAnimation({ container: $('#bootAnim'), renderer: 'svg', loop: true, autoplay: true, animationData: j });
+        $('#boot').classList.add('has-anim');
+      }).catch(() => {});
+    } catch (e) {}
+  }
+
   async function init() {
+    startLoader();
     const cached = loadCache();
     if (cached) { apply(cached); endBoot(); } // есть сохранённые данные — показываем сразу, без заставки
     try {
