@@ -105,7 +105,13 @@
       if (!state || ['not_registered', 'unauthorized', 'finished', 'no_demo', 'maintenance'].includes(e.code)) {
         try { localStorage.removeItem(CACHE_KEY); } catch (err) {}
         showError(e);
-      } else toast('Нет связи с таблицей, показаны сохранённые данные');
+      } else {
+        // свежие данные не пришли — показываем сохранённые, но явно: от какого дня и кнопка «Обновить»
+        const d = state && state.date ? parseDate(state.date) : null;
+        const b = $('#staleBanner');
+        b.innerHTML = `⚠️ Нет связи с сервером — показаны данные${d ? ' от ' + d.getDate() + ' ' + MONTHS[d.getMonth()] : ''}. <button class="link" onclick="location.reload()">Обновить</button>`;
+        b.classList.remove('hidden');
+      }
     } finally { endBoot(); }
   }
 

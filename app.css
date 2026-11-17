@@ -364,3 +364,5 @@ textarea.grow { resize: none; overflow-y: auto; line-height: 1.4; display: block
 .fs-it { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; color: var(--muted); padding: 2px 0 2px 8px; }
 .fs-it i { font-style: normal; opacity: .8; }
 .fs-how { margin-top: 8px; font-size: 13px; color: var(--muted); line-height: 1.45; }
+.banner.stale { background: rgba(230, 126, 34, .14); color: #b35f00; }
+.banner.stale .link { font-weight: 700; color: inherit; text-decoration: underline; padding: 0; }
