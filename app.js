@@ -610,7 +610,7 @@
     };
     box.addEventListener('click', e => {
       const rm = e.target.closest('[data-rm]');
-      if (rm) { pk.list.splice(+rm.dataset.rm, 1); pk.render(); return; }
+      if (rm) { pk.list.splice(+rm.dataset.rm, 1); pk.render(); if (pk.onChange) pk.onChange(); return; }
       if (e.target.closest('.add-ph')) input.click();
     });
     input.addEventListener('change', async () => {
@@ -618,6 +618,7 @@
       input.value = '';
       for (const f of files) { try { pk.list.push(await compress(f)); } catch (err) { toast(err.message); } }
       pk.render();
+      if (pk.onChange) pk.onChange();
     });
     pk.reset = () => { pk.list = []; pk.render(); };
     pk.render();
@@ -666,8 +667,10 @@
       <div class="fld"><div class="lbl">📎 Дневник FatSecret <small>ссылка на экспорт</small></div>
         <input name="fatsecret" type="text" inputmode="url" value="${esc(v.fatsecret || '')}" placeholder="Вставьте ссылку из FatSecret" autocomplete="off">
         <div id="fsBox"></div></div>
-      <div id="manualKbju">
-        <div class="fs-or">Нет ссылки? Введите вручную и приложите скриншоты</div>
+      <div class="fld" id="fsPhotos"><div class="lbl">📷 Нет ссылки? Приложите скриншоты FatSecret <small>до 3</small></div>
+        <div class="photos" id="repPhotos"></div></div>
+      <div id="manualKbju" class="hidden">
+        <div class="fs-or">Перепишите итог дня со скриншота</div>
         <div class="fld"><div class="lbl">🔥 Калории за день</div>
           <input name="kcal" inputmode="numeric" placeholder="например, 1650" value="${val('kcal')}"></div>
         <div class="fld"><div class="lbl">БЖУ, г <small>белок — обязательно, если тренер выдал планку</small></div>
@@ -676,8 +679,6 @@
             <label>Жиры<input name="f" inputmode="decimal" value="${val('f')}"></label>
             <label>Углеводы<input name="c" inputmode="decimal" value="${val('c')}"></label>
           </div></div>
-        <div class="fld"><div class="lbl">📷 Скриншоты FatSecret <small>до 3</small></div>
-          <div class="photos" id="repPhotos"></div></div>
       </div>
       <div class="fld"><div class="lbl">😋 Голод в течение дня</div>
         <div class="scale" id="hungerScale">${Array.from({ length: 10 }, (_, i) => `<button type="button" data-h="${i + 1}" class="${+hunger === i + 1 ? 'on' : ''}">${i + 1}</button>`).join('')}</div>
@@ -700,13 +701,23 @@
         <textarea name="note" class="grow" rows="3" placeholder="необязательно">${esc(v.note || '')}</textarea></div>
       <button class="btn primary full" type="submit">${r ? 'Отправить исправленный отчёт' : 'Отправить отчёт за ' + (repDay === 'today' ? 'сегодня' : 'вчера, ' + label)}</button>`;
     repPhotos = photoPicker($('#repPhotos'), 3, 'скриншот');
+    repPhotos.onChange = updateManual;
+    // исправление старого отчёта без ссылки — цифры, введённые вручную, показываем сразу
+    manualForEdit = !!(r && !v.fatsecret && v.kcal);
     fsData = null;
-    if (v.fatsecret) checkFs(v.fatsecret); else showManual(true);
+    if (v.fatsecret) checkFs(v.fatsecret); else updateManual();
   }
 
   /* ---------- FatSecret: цифры дня по ссылке экспорта ---------- */
-  let fsData = null, fsTimer = null, fsReq = 0;
-  const showManual = on => { const m = $('#manualKbju'); if (m) m.classList.toggle('hidden', !on); };
+  let fsData = null, fsTimer = null, fsReq = 0, fsBusy = false, manualForEdit = false;
+  // Поля калорий/БЖУ — только когда есть скриншоты, а рабочей ссылки нет. Скриншоты не нужны, если ссылка сработала.
+  function updateManual() {
+    const m = $('#manualKbju'), ph = $('#fsPhotos');
+    if (!m || !ph) return;
+    const hasPhotos = repPhotos && repPhotos.list.length > 0;
+    ph.classList.toggle('hidden', !!fsData || fsBusy);
+    m.classList.toggle('hidden', !!fsData || fsBusy || !(hasPhotos || manualForEdit));
+  }
   function fsCard(fs) {
     const d = parseDate(fs.date);
     const meals = (fs.meals || []).map(m => `<div class="fs-meal"><div class="fs-mt"><span>${esc(m.meal)}</span><span>${fmt(m.kcal)} ккал</span></div>
@@ -721,20 +732,22 @@
     url = String(url || '').trim();
     fsData = null;
     const id = ++fsReq;
-    if (!url) { box.innerHTML = ''; showManual(true); return; }
-    if (!/fatsecret\./i.test(url)) { box.innerHTML = '<div class="fs-err">Это не ссылка FatSecret. В приложении FatSecret: Дневник → Экспорт → скопировать ссылку.</div>'; showManual(true); return; }
+    fsBusy = false;
+    if (!url) { box.innerHTML = ''; updateManual(); return; }
+    if (!/fatsecret\./i.test(url)) { box.innerHTML = '<div class="fs-err">Это не ссылка FatSecret. В приложении FatSecret: Дневник → Экспорт → скопировать ссылку.</div>'; updateManual(); return; }
     box.innerHTML = '<div class="fs-load">Загружаю дневник из FatSecret…</div>';
-    showManual(false);
+    fsBusy = true; updateManual();
     try {
       const r = await api('fatsecret', { url, day: repDay });
       if (id !== fsReq) return;
-      fsData = r.fs;
+      fsBusy = false; fsData = r.fs;
       box.innerHTML = fsCard(r.fs);
-      haptic();
+      updateManual(); haptic();
     } catch (err) {
       if (id !== fsReq) return;
+      fsBusy = false;
       box.innerHTML = `<div class="fs-err">${esc(err.message)}</div>`;
-      showManual(true);
+      updateManual();
     }
   }
   $('#reportForm').addEventListener('input', e => {
@@ -764,7 +777,8 @@
     ['training', 'fatsecret', 'note'].forEach(k => { data[k] = String(fd.get(k) || '').trim(); });
     data.stepsTr = !!fd.get('stepsTr');
     if (fsData) { data.kcal = String(fsData.kcal); data.p = fsData.p == null ? '' : String(fsData.p); data.f = fsData.f == null ? '' : String(fsData.f); data.c = fsData.c == null ? '' : String(fsData.c); data.photos = []; }
-    if (!(parseFloat(data.kcal) > 0)) { toast(data.fatsecret ? 'Ссылка FatSecret не подошла — введите калории вручную' : 'Вставьте ссылку FatSecret или укажите калории'); return; }
+    if (!fsData && !data.photos.length && !manualForEdit) { toast(fsBusy ? 'Подождите, загружаю дневник из FatSecret…' : 'Вставьте ссылку FatSecret или приложите скриншоты'); return; }
+    if (!(parseFloat(data.kcal) > 0)) { toast('Укажите калории за день — перепишите со скриншота'); return; }
     if (state.me.tPr && !data.p && !(await confirmAsk('Белок не указан. Отправить без него?'))) return;
     const btn = $('button[type=submit]', e.target);
     btn.disabled = true; btn.textContent = data.photos.length ? 'Отправляю со скриншотами…' : 'Отправляю…';
