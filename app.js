@@ -239,12 +239,14 @@
   }
 
   /* ---------- Меню ---------- */
+  // Список разрешённых продуктов (лист «Список продуктов») пока не показываем — вернуть: true
+  const SHOW_PRODUCTS = false;
   // Меню по калоражу (тексты тренера): приёмы пищи + список разрешённых продуктов
   function renderCalMenu(cm) {
     $('#menuHead').innerHTML = `<div class="title">Меню на ${fmt(cm.tier)} ккал</div>
       <div class="muted">${cm.target && cm.target !== cm.tier ? 'Подобрано под ваш калораж ' + fmt(cm.target) + ' ккал · ' : ''}≈${fmt(cm.kcal)} ккал за день</div>`;
     $('#dayChips').innerHTML = '';
-    const prods = state.products || [];
+    const prods = SHOW_PRODUCTS ? (state.products || []) : []; // список продуктов временно скрыт
     $('#dayMeals').innerHTML = cm.meals.map(m => `
       <div class="meal cal">
         <div class="when">${esc(m.meal)}</div>
