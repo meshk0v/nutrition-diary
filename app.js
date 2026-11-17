@@ -239,33 +239,14 @@
   }
 
   /* ---------- Меню ---------- */
-  // Список разрешённых продуктов (лист «Список продуктов») пока не показываем — вернуть: true
-  const SHOW_PRODUCTS = false;
-  // Меню по калоражу (тексты тренера): приёмы пищи + список разрешённых продуктов
-  function renderCalMenu(cm) {
-    $('#menuHead').innerHTML = `<div class="title">Меню на ${fmt(cm.tier)} ккал</div>
-      <div class="muted">${cm.target && cm.target !== cm.tier ? 'Подобрано под ваш калораж ' + fmt(cm.target) + ' ккал · ' : ''}≈${fmt(cm.kcal)} ккал за день</div>`;
-    $('#dayChips').innerHTML = '';
-    const prods = SHOW_PRODUCTS ? (state.products || []) : []; // список продуктов временно скрыт
-    $('#dayMeals').innerHTML = cm.meals.map(m => `
-      <div class="meal cal">
-        <div class="when">${esc(m.meal)}</div>
-        ${m.items.map(x => `<div class="cm-row"><span class="cm-name">${esc(x.name)}${x.amount ? ` <span class="cm-amt">${esc(x.amount)}</span>` : ''}</span><span class="cm-kcal">${esc(x.kcal)}</span></div>`).join('')}
-      </div>`).join('') +
-      (prods.length ? `<div class="card prods"><h2>🛒 Разрешённые продукты</h2>
-        ${prods.map(c => `<details><summary>${esc(c.cat)} <span class="muted">${c.items.length}</span></summary>
-          <ul>${c.items.map(i => `<li>${esc(i)}</li>`).join('')}</ul></details>`).join('')}</div>` : '');
-  }
-
   function renderMenu() {
-    if (state.calMenu) return renderCalMenu(state.calMenu);
     const m = state.menu;
     if (!m) {
       $('#menuHead').innerHTML = '<div class="title">Меню пока не назначено</div><div class="muted">Тренер пришлёт его в бот, и оно появится здесь.</div>';
       $('#dayChips').innerHTML = ''; $('#dayMeals').innerHTML = '';
       return;
     }
-    $('#menuHead').innerHTML = `<div class="code">${esc(m.code)}</div><div class="title">${esc(m.name || 'Меню на неделю')}</div><div class="muted">Неделя ${esc(m.period)}${m.target ? ' · ' + fmt(m.target) + ' ккал в день' : ''}</div>`;
+    $('#menuHead').innerHTML = `<div class="code">${esc(m.code)}</div><div class="title">${esc(m.name || 'Меню на неделю')}</div><div class="muted">Неделя ${esc(m.period)}${m.target ? ' · ' + fmt(m.target) + ' ккал в день' : ''}${m.auto && state.me.target && state.me.target !== m.target ? ' · подобрано под ваш калораж ' + fmt(state.me.target) : ''}</div>`;
     const todayIdx = m.days.findIndex(d => d.date === state.date);
     if (renderMenu.first !== false) { menuDay = todayIdx >= 0 ? todayIdx : 0; renderMenu.first = false; }
     $('#dayChips').innerHTML = m.days.map((d, i) => `<button data-d="${i}" class="${i === menuDay ? 'on' : ''} ${i === todayIdx ? 'today' : ''}">${d.day}<small>${parseDate(d.date).getDate()}</small></button>`).join('');
@@ -281,7 +262,7 @@
   }
   $('#dayChips').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; menuDay = +b.dataset.d; renderMenu(); haptic(); });
   $('#dayMeals').addEventListener('click', e => {
-    if (!state.menu || state.calMenu) return;
+    if (!state.menu) return;
     const day = state.menu.days[menuDay];
     const rb = e.target.closest('[data-recipe]');
     if (rb) openRecipe(day.meals[+rb.dataset.recipe]);
