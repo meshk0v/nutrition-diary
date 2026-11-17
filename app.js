@@ -39,6 +39,10 @@
     try { if (tg.disableVerticalSwipes) tg.disableVerticalSwipes(); } catch (e) {}
   }
 
+  // Поля с классом grow подстраивают высоту под текст (до половины экрана, дальше — прокрутка внутри)
+  const autoGrow = el => { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight + 2, window.innerHeight * 0.5) + 'px'; };
+  document.addEventListener('input', e => { if (e.target.classList && e.target.classList.contains('grow')) autoGrow(e.target); });
+
   /* ---------- API ---------- */
   async function api(action, data = {}) {
     try {
@@ -105,8 +109,9 @@
     const field = q => {
       const [key, label, type] = q;
       if (type.startsWith('select:')) return `<select name="${key}"><option value=""></option>${type.slice(7).split('|').map(o => `<option>${esc(o)}</option>`).join('')}</select>`;
-      if (type === 'area') return `<textarea name="${key}"></textarea>`;
-      return `<input name="${key}" ${type === 'num' ? 'inputmode="decimal"' : ''}>`;
+      if (type === 'num') return `<input name="${key}" inputmode="decimal">`;
+      // текстовые ответы — растущее поле: ширина строки, дальше растёт по мере набора
+      return `<textarea name="${key}" class="grow" rows="${type === 'area' ? 3 : 2}"></textarea>`;
     };
     $('main').innerHTML = `<form class="card anketa" id="anketaForm" autocomplete="off">
       <h2>Анкета перед стартом</h2>
@@ -651,7 +656,7 @@
         <input name="fatsecret" type="text" inputmode="url" value="${esc(v.fatsecret || '')}" placeholder="https://foods.fatsecret.com/export/…">
         <div class="photos" id="repPhotos" style="margin-top:8px"></div></div>
       <div class="fld"><div class="lbl">💬 Комментарий для тренера</div>
-        <textarea name="note" rows="2" placeholder="необязательно">${esc(v.note || '')}</textarea></div>
+        <textarea name="note" class="grow" rows="3" placeholder="необязательно">${esc(v.note || '')}</textarea></div>
       <button class="btn primary full" type="submit">${r ? 'Отправить исправленный отчёт' : 'Отправить отчёт за ' + (repDay === 'today' ? 'сегодня' : 'вчера, ' + label)}</button>`;
     repPhotos = photoPicker($('#repPhotos'), 3, 'скриншот');
   }

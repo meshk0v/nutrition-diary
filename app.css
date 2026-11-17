@@ -310,3 +310,6 @@ body.booting .boot { display: flex; position: fixed; inset: 0; align-items: cent
 body.booting #app, body.booting .tabs { visibility: hidden; }
 .spin { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--accent); animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Растущие текстовые поля */
+textarea.grow { resize: none; overflow-y: auto; line-height: 1.4; display: block; }
