@@ -119,11 +119,11 @@
   /* ---------- Анкета (для тех, кого ещё нет в группе) ---------- */
   function showAnketa(e) {
     $('#hello').textContent = 'Добро пожаловать!';
-    $('#sub').textContent = 'Ваш Telegram ID: ' + (e.id || '—');
+    $('#sub').textContent = 'Анкета перед стартом';
     $('.tabs').classList.add('hidden');
     if (e.anketaSent) {
       $('main').innerHTML = `<div class="error-box"><div class="big">✅</div><h2>Анкета отправлена</h2>
-        <p class="muted">Тренер добавит вас в группу — после этого откройте дневник снова.<br>Ваш Telegram ID: <b>${esc(e.id)}</b></p>
+        <p class="muted">Тренер добавит вас в группу — бот пришлёт сообщение, и приложение откроется.</p>
         <button class="btn" onclick="location.reload()">Обновить</button></div>`;
       return;
     }
@@ -174,7 +174,7 @@
     if (e.code === 'maintenance') return showMaintenance(e);
     if (e.code === 'not_registered' && e.anketa) return showAnketa(e);
     const msgs = {
-      not_registered: ['🙋', 'Вас пока нет в группе', 'Передайте тренеру ваш Telegram ID: ' + (e.id || '—') + '. После добавления откройте дневник снова.'],
+      not_registered: ['🙋', 'Вас пока нет в группе', 'Тренер добавит вас — после этого откройте дневник снова.'],
       unauthorized: ['🔒', 'Не удалось войти', e.message],
       finished: ['👋', 'Участие завершено', e.message],
       no_demo: ['📱', 'Откройте из Telegram', e.message]
