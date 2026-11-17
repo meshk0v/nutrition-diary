@@ -277,8 +277,16 @@
     const portions = x.unit === 'г' && r.portion ? x.qty / r.portion : Number(x.qty) || 1;
     const k = portions / (r.portions || 1);
     $('#rTitle').textContent = x.item;
-    // Только состав на порцию участника — как в меню тренера (без способа приготовления и пояснений)
-    $('#rBody').innerHTML = `<div style="margin-top:4px">${r.items.map(([n, g]) => `<div class="ing"><span>${esc(n)}</span><b>${fmt(g * k)} г</b></div>`).join('')}</div>`;
+    // Состав на порцию участника в формате тренера: «продукт — граммы — ккал» (ккал по справочнику)
+    let total = 0;
+    const rows = r.items.map(([n, g]) => {
+      const grams = g * k, it = items.find(i => i.name === n);
+      const kcal = it ? grams * it.kcal / 100 : null;
+      if (kcal != null) total += kcal;
+      return `<div class="ing"><span>${esc(n)}</span><span class="ing-r"><b>${fmt(grams)} г</b>${kcal != null ? ` · ${fmt(kcal)} ккал` : ''}</span></div>`;
+    }).join('');
+    $('#rBody').innerHTML = `<div style="margin-top:4px">${rows}</div>` +
+      (total ? `<div class="ing ing-total"><span>Итого</span><span class="ing-r"><b>${fmt(total)} ккал</b></span></div>` : '');
     openSheet('#recipeSheet');
   }
 

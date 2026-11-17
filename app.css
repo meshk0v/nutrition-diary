@@ -341,3 +341,9 @@ textarea.grow { resize: none; overflow-y: auto; line-height: 1.4; display: block
 .prods details[open] summary::after { transform: rotate(-90deg); }
 .prods ul { margin: 8px 0 0; padding-left: 18px; color: var(--text); }
 .prods li { padding: 3px 0; }
+
+/* Состав рецепта: граммы и ккал */
+.ing-r { white-space: nowrap; color: var(--muted); }
+.ing-r b { color: var(--text); }
+.ing-total { border-top: 1.5px solid var(--line); margin-top: 4px; }
+.ing-total .ing-r b { color: var(--accent); }
