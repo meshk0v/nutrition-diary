@@ -273,7 +273,6 @@
 
   function openRecipe(x) {
     const r = state.recipes[x.item];
-    const it = items.find(i => i.name === x.item);
     // во сколько раз ингредиентов меньше/больше, чем в целом рецепте, при этой порции
     const portions = x.unit === 'г' && r.portion ? x.qty / r.portion : Number(x.qty) || 1;
     const k = portions / (r.portions || 1);
