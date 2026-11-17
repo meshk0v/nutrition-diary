@@ -68,7 +68,7 @@
 
   async function init() {
     const cached = loadCache();
-    if (cached) apply(cached); else skeleton();
+    if (cached) { apply(cached); endBoot(); } // есть сохранённые данные — показываем сразу, без заставки
     try {
       apply(await api('init'));
       saveCache();
@@ -81,8 +81,11 @@
         try { localStorage.removeItem(CACHE_KEY); } catch (err) {}
         showError(e);
       } else toast('Нет связи с таблицей, показаны сохранённые данные');
-    }
+    } finally { endBoot(); }
   }
+
+  // Заставка загрузки: пока не знаем, кто открыл приложение, не рисуем ни шапку, ни нижнее меню
+  function endBoot() { document.body.classList.remove('booting'); }
 
   function skeleton() {
     $('#reportForm').innerHTML = '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>';
