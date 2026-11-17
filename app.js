@@ -664,10 +664,10 @@
     const val = k => { const x = v[k]; return x == null || x === '' ? '' : String(x).replace('.', ','); };
     const hunger = v.hunger || '';
     $('#reportForm').innerHTML = `
-      <div class="fld"><div class="lbl">📎 Дневник FatSecret <small>ссылка на экспорт</small></div>
+      <div class="fld"><div class="lbl">📎 Дневник FatSecret <small>${state.fsRequired ? 'обязательно' : 'ссылка на экспорт'}</small></div>
         <input name="fatsecret" type="text" inputmode="url" value="${esc(v.fatsecret || '')}" placeholder="Вставьте ссылку из FatSecret" autocomplete="off">
-        <div id="fsBox"></div></div>
-      <div class="fld" id="fsPhotos"><div class="lbl">📷 Нет ссылки? Приложите скриншоты FatSecret <small>до 3</small></div>
+        <div id="fsBox">${state.fsRequired && !v.fatsecret ? fsHowTo : ''}</div></div>
+      <div class="fld${state.fsRequired ? ' hidden' : ''}" id="fsPhotos"><div class="lbl">📷 Нет ссылки? Приложите скриншоты FatSecret <small>до 3</small></div>
         <div class="photos" id="repPhotos"></div></div>
       <div id="manualKbju" class="hidden">
         <div class="fs-or">Перепишите итог дня со скриншота</div>
@@ -710,11 +710,14 @@
 
   /* ---------- FatSecret: цифры дня по ссылке экспорта ---------- */
   let fsData = null, fsTimer = null, fsReq = 0, fsBusy = false, manualForEdit = false;
+  const fsHowTo = '<div class="fs-how">Где взять: FatSecret → <b>Дневник</b> → ⋯ → <b>Экспорт</b> → скопировать ссылку и вставить сюда.</div>';
   // Поля калорий/БЖУ — только когда есть скриншоты, а рабочей ссылки нет. Скриншоты не нужны, если ссылка сработала.
   function updateManual() {
     const m = $('#manualKbju'), ph = $('#fsPhotos');
     if (!m || !ph) return;
     const hasPhotos = repPhotos && repPhotos.list.length > 0;
+    // ссылка обязательна — ни скриншотов, ни ручного ввода
+    if (state.fsRequired) { ph.classList.add('hidden'); m.classList.add('hidden'); return; }
     ph.classList.toggle('hidden', !!fsData || fsBusy);
     m.classList.toggle('hidden', !!fsData || fsBusy || !(hasPhotos || manualForEdit));
   }
@@ -733,7 +736,7 @@
     fsData = null;
     const id = ++fsReq;
     fsBusy = false;
-    if (!url) { box.innerHTML = ''; updateManual(); return; }
+    if (!url) { box.innerHTML = state.fsRequired ? fsHowTo : ''; updateManual(); return; }
     if (!/fatsecret\./i.test(url)) { box.innerHTML = '<div class="fs-err">Это не ссылка FatSecret. В приложении FatSecret: Дневник → Экспорт → скопировать ссылку.</div>'; updateManual(); return; }
     box.innerHTML = '<div class="fs-load">Загружаю дневник из FatSecret…</div>';
     fsBusy = true; updateManual();
@@ -777,6 +780,7 @@
     ['training', 'fatsecret', 'note'].forEach(k => { data[k] = String(fd.get(k) || '').trim(); });
     data.stepsTr = !!fd.get('stepsTr');
     if (fsData) { data.kcal = String(fsData.kcal); data.p = fsData.p == null ? '' : String(fsData.p); data.f = fsData.f == null ? '' : String(fsData.f); data.c = fsData.c == null ? '' : String(fsData.c); data.photos = []; }
+    if (state.fsRequired && !fsData) { toast(fsBusy ? 'Подождите, загружаю дневник из FatSecret…' : 'Вставьте ссылку на экспорт FatSecret'); return; }
     if (!fsData && !data.photos.length && !manualForEdit) { toast(fsBusy ? 'Подождите, загружаю дневник из FatSecret…' : 'Вставьте ссылку FatSecret или приложите скриншоты'); return; }
     if (!(parseFloat(data.kcal) > 0)) { toast('Укажите калории за день — перепишите со скриншота'); return; }
     if (state.me.tPr && !data.p && !(await confirmAsk('Белок не указан. Отправить без него?'))) return;

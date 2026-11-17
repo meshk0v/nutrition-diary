@@ -363,3 +363,4 @@ textarea.grow { resize: none; overflow-y: auto; line-height: 1.4; display: block
 .fs-mt { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; }
 .fs-it { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; color: var(--muted); padding: 2px 0 2px 8px; }
 .fs-it i { font-style: normal; opacity: .8; }
+.fs-how { margin-top: 8px; font-size: 13px; color: var(--muted); line-height: 1.45; }
