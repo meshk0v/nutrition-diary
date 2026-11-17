@@ -239,8 +239,8 @@
   }
 
   /* ---------- Меню ---------- */
-  // Кнопка «Рецепт →» скрыта, пока у тренера нет своих рецептов (вернуть: true)
-  const SHOW_RECIPES = false;
+  // Кнопка «Рецепт →» у блюд, для которых есть рецепт (false — скрыть)
+  const SHOW_RECIPES = true;
 
   function renderMenu() {
     const m = state.menu;
@@ -278,11 +278,8 @@
     const portions = x.unit === 'г' && r.portion ? x.qty / r.portion : Number(x.qty) || 1;
     const k = portions / (r.portions || 1);
     $('#rTitle').textContent = x.item;
-    $('#rBody').innerHTML = `
-      <div class="muted">На вашу порцию (${fmt(x.qty, 2)} ${esc(x.unit)})${it ? ' · ' + fmt(x.kcal) + ' ккал' : ''}</div>
-      <div style="margin-top:8px">${r.items.map(([n, g]) => `<div class="ing"><span>${esc(n)}</span><b>${fmt(g * k)} г</b></div>`).join('')}</div>
-      ${r.desc ? `<p class="desc">${esc(r.desc)}</p>` : ''}
-      <div class="muted" style="margin:10px 0 4px">Весь рецепт: ${r.portions} порц.; граммы — в сыром виде.</div>`;
+    // Только состав на порцию участника — как в меню тренера (без способа приготовления и пояснений)
+    $('#rBody').innerHTML = `<div style="margin-top:4px">${r.items.map(([n, g]) => `<div class="ing"><span>${esc(n)}</span><b>${fmt(g * k)} г</b></div>`).join('')}</div>`;
     openSheet('#recipeSheet');
   }
 
