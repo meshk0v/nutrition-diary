@@ -239,6 +239,9 @@
   }
 
   /* ---------- Меню ---------- */
+  // Кнопка «Рецепт →» скрыта, пока у тренера нет своих рецептов (вернуть: true)
+  const SHOW_RECIPES = false;
+
   function renderMenu() {
     const m = state.menu;
     if (!m) {
@@ -257,7 +260,7 @@
           <div class="when">${esc(x.meal)}</div>
           <div class="dish">${esc(x.item)}</div>
           <div class="nut">${fmt(x.qty, 2)} ${esc(x.unit)}${x.grams && x.unit !== 'г' ? ' · ≈' + fmt(x.grams) + ' г' : ''} · ${fmt(x.kcal)} ккал · Б ${fmt(x.p, 1)} Ж ${fmt(x.f, 1)} У ${fmt(x.c, 1)}</div>
-          ${state.recipes && state.recipes[x.item] ? `<div class="row"><button class="link" data-recipe="${i}">Рецепт →</button></div>` : ''}
+          ${SHOW_RECIPES && state.recipes && state.recipes[x.item] ? `<div class="row"><button class="link" data-recipe="${i}">Рецепт →</button></div>` : ''}
         </div>`).join('') : '<div class="empty">На этот день блюд нет</div>');
   }
   $('#dayChips').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; menuDay = +b.dataset.d; renderMenu(); haptic(); });
@@ -478,7 +481,7 @@
           <div class="when">${esc(x.meal)}</div>
           <div class="dish">${esc(x.item)}</div>
           <div class="nut">${fmt(x.qty, 2)} ${esc(x.unit)}${x.grams && x.unit !== 'г' ? ' · ≈' + fmt(x.grams) + ' г' : ''} · ${fmt(x.kcal)} ккал · Б ${fmt(x.p, 1)} Ж ${fmt(x.f, 1)} У ${fmt(x.c, 1)}</div>
-          ${state.recipes && state.recipes[x.item] ? `<div class="row"><button class="link" data-rrec="${i}">Рецепт →</button></div>` : ''}
+          ${SHOW_RECIPES && state.recipes && state.recipes[x.item] ? `<div class="row"><button class="link" data-rrec="${i}">Рецепт →</button></div>` : ''}
         </div>`).join('');
     } else {
       const list = shoppingList(r, raDays);
