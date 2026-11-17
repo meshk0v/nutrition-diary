@@ -147,7 +147,11 @@
     $('.top').classList.add('hidden');
     $('#demoBanner').classList.add('hidden');
     $('.tabs').classList.add('hidden');
-    $('main').innerHTML = `<div class="dev-box">${esc(e.message || 'Приложение в разработке 🚧')}</div>`;
+    // Стандартный текст заменяем оформлением «тренировки и контроль»; свой текст из листа «Тексты» показываем как есть
+    const custom = e.message && e.message !== 'Приложение в разработке 🚧';
+    $('main').innerHTML = `<div class="dev-box"><div class="dev-in"><div class="dev-ic">🏋️</div>
+      <div class="dev-t">${custom ? esc(e.message) : 'Приложение для тренировок и контроля питания'}</div>
+      ${custom ? '' : '<div class="dev-s">В разработке 🚧 Скоро откроется</div>'}</div></div>`;
   }
 
   function showError(e) {
