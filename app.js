@@ -663,14 +663,22 @@
     const val = k => { const x = v[k]; return x == null || x === '' ? '' : String(x).replace('.', ','); };
     const hunger = v.hunger || '';
     $('#reportForm').innerHTML = `
-      <div class="fld"><div class="lbl">🔥 Калории за день <small>из FatSecret</small></div>
-        <input name="kcal" inputmode="numeric" placeholder="например, 1650" value="${val('kcal')}" required></div>
-      <div class="fld"><div class="lbl">БЖУ, г <small>белок — обязательно, если тренер выдал планку</small></div>
-        <div class="row3">
-          <label>Белки<input name="p" inputmode="decimal" value="${val('p')}"></label>
-          <label>Жиры<input name="f" inputmode="decimal" value="${val('f')}"></label>
-          <label>Углеводы<input name="c" inputmode="decimal" value="${val('c')}"></label>
-        </div></div>
+      <div class="fld"><div class="lbl">📎 Дневник FatSecret <small>ссылка на экспорт</small></div>
+        <input name="fatsecret" type="text" inputmode="url" value="${esc(v.fatsecret || '')}" placeholder="Вставьте ссылку из FatSecret" autocomplete="off">
+        <div id="fsBox"></div></div>
+      <div id="manualKbju">
+        <div class="fs-or">Нет ссылки? Введите вручную и приложите скриншоты</div>
+        <div class="fld"><div class="lbl">🔥 Калории за день</div>
+          <input name="kcal" inputmode="numeric" placeholder="например, 1650" value="${val('kcal')}"></div>
+        <div class="fld"><div class="lbl">БЖУ, г <small>белок — обязательно, если тренер выдал планку</small></div>
+          <div class="row3">
+            <label>Белки<input name="p" inputmode="decimal" value="${val('p')}"></label>
+            <label>Жиры<input name="f" inputmode="decimal" value="${val('f')}"></label>
+            <label>Углеводы<input name="c" inputmode="decimal" value="${val('c')}"></label>
+          </div></div>
+        <div class="fld"><div class="lbl">📷 Скриншоты FatSecret <small>до 3</small></div>
+          <div class="photos" id="repPhotos"></div></div>
+      </div>
       <div class="fld"><div class="lbl">😋 Голод в течение дня</div>
         <div class="scale" id="hungerScale">${Array.from({ length: 10 }, (_, i) => `<button type="button" data-h="${i + 1}" class="${+hunger === i + 1 ? 'on' : ''}">${i + 1}</button>`).join('')}</div>
         <div class="scale-hint"><span>не голоден</span><span>очень голоден</span></div>
@@ -688,14 +696,52 @@
         <label>🏋️ Тренировка<input name="training" value="${esc(v.training || '')}" placeholder="нет / силовая 60 мин"></label>
         <label>🥦 Растительность, г<input name="veg" inputmode="numeric" value="${val('veg')}" placeholder="овощи и фрукты"></label>
       </div></div>
-      <div class="fld"><div class="lbl">📎 FatSecret <small>ссылка на экспорт или скриншоты</small></div>
-        <input name="fatsecret" type="text" inputmode="url" value="${esc(v.fatsecret || '')}" placeholder="https://foods.fatsecret.com/export/…">
-        <div class="photos" id="repPhotos" style="margin-top:8px"></div></div>
       <div class="fld"><div class="lbl">💬 Комментарий для тренера</div>
         <textarea name="note" class="grow" rows="3" placeholder="необязательно">${esc(v.note || '')}</textarea></div>
       <button class="btn primary full" type="submit">${r ? 'Отправить исправленный отчёт' : 'Отправить отчёт за ' + (repDay === 'today' ? 'сегодня' : 'вчера, ' + label)}</button>`;
     repPhotos = photoPicker($('#repPhotos'), 3, 'скриншот');
+    fsData = null;
+    if (v.fatsecret) checkFs(v.fatsecret); else showManual(true);
   }
+
+  /* ---------- FatSecret: цифры дня по ссылке экспорта ---------- */
+  let fsData = null, fsTimer = null, fsReq = 0;
+  const showManual = on => { const m = $('#manualKbju'); if (m) m.classList.toggle('hidden', !on); };
+  function fsCard(fs) {
+    const d = parseDate(fs.date);
+    const meals = (fs.meals || []).map(m => `<div class="fs-meal"><div class="fs-mt"><span>${esc(m.meal)}</span><span>${fmt(m.kcal)} ккал</span></div>
+      ${m.items.map(x => `<div class="fs-it"><span>${esc(x.name)}${x.amount ? ` <i>${esc(x.amount)}</i>` : ''}</span><span>${fmt(x.kcal)}</span></div>`).join('')}</div>`).join('');
+    return `<div class="fs-card"><div class="fs-top">✓ Загружено из FatSecret · ${d.getDate()} ${MONTHS[d.getMonth()]}</div>
+      <div class="fs-nums"><div><b>${fmt(fs.kcal)}</b><span>ккал</span></div><div><b>${fmt(fs.p)}</b><span>белки</span></div>
+      <div><b>${fmt(fs.f)}</b><span>жиры</span></div><div><b>${fmt(fs.c)}</b><span>углеводы</span></div></div>
+      ${meals ? `<details><summary>Что съедено</summary>${meals}</details>` : ''}</div>`;
+  }
+  async function checkFs(url) {
+    const box = $('#fsBox');
+    url = String(url || '').trim();
+    fsData = null;
+    const id = ++fsReq;
+    if (!url) { box.innerHTML = ''; showManual(true); return; }
+    if (!/fatsecret\./i.test(url)) { box.innerHTML = '<div class="fs-err">Это не ссылка FatSecret. В приложении FatSecret: Дневник → Экспорт → скопировать ссылку.</div>'; showManual(true); return; }
+    box.innerHTML = '<div class="fs-load">Загружаю дневник из FatSecret…</div>';
+    showManual(false);
+    try {
+      const r = await api('fatsecret', { url, day: repDay });
+      if (id !== fsReq) return;
+      fsData = r.fs;
+      box.innerHTML = fsCard(r.fs);
+      haptic();
+    } catch (err) {
+      if (id !== fsReq) return;
+      box.innerHTML = `<div class="fs-err">${esc(err.message)}</div>`;
+      showManual(true);
+    }
+  }
+  $('#reportForm').addEventListener('input', e => {
+    if (e.target.name !== 'fatsecret') return;
+    clearTimeout(fsTimer);
+    fsTimer = setTimeout(() => checkFs(e.target.value), 600);
+  });
 
   $('#repDay').addEventListener('click', e => {
     if (e.target.closest('#goYesterday')) repDay = 'yesterday';
@@ -717,7 +763,8 @@
     ['kcal', 'p', 'f', 'c', 'hunger', 'weight', 'water', 'steps', 'tea', 'veg'].forEach(k => { data[k] = String(fd.get(k) || '').replace(',', '.').replace(/\s/g, ''); });
     ['training', 'fatsecret', 'note'].forEach(k => { data[k] = String(fd.get(k) || '').trim(); });
     data.stepsTr = !!fd.get('stepsTr');
-    if (!(parseFloat(data.kcal) > 0)) { toast('Укажите калории за день'); return; }
+    if (fsData) { data.kcal = String(fsData.kcal); data.p = fsData.p == null ? '' : String(fsData.p); data.f = fsData.f == null ? '' : String(fsData.f); data.c = fsData.c == null ? '' : String(fsData.c); data.photos = []; }
+    if (!(parseFloat(data.kcal) > 0)) { toast(data.fatsecret ? 'Ссылка FatSecret не подошла — введите калории вручную' : 'Вставьте ссылку FatSecret или укажите калории'); return; }
     if (state.me.tPr && !data.p && !(await confirmAsk('Белок не указан. Отправить без него?'))) return;
     const btn = $('button[type=submit]', e.target);
     btn.disabled = true; btn.textContent = data.photos.length ? 'Отправляю со скриншотами…' : 'Отправляю…';
