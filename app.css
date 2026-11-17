@@ -11,6 +11,8 @@
   --f: #e8a93c;
   --c: #9a6be0;
   --line: rgba(127, 140, 130, .18);
+  --field-bg: color-mix(in srgb, var(--text) 5%, var(--card));
+  --field-line: color-mix(in srgb, var(--text) 24%, transparent);
   --radius: 18px;
   --shadow: 0 1px 2px rgba(0,0,0,.04), 0 6px 20px rgba(20, 40, 25, .06);
 }
@@ -121,7 +123,7 @@ h2 { font-size: 16px; font-weight: 700; margin: 0; }
 .down { color: var(--accent); } .up { color: var(--bad); }
 .grid4 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
 .grid4 label { font-size: 12.5px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
-.grid4 input, .qty-row input, #search { background: var(--bg); border: 1.5px solid transparent; border-radius: 12px; padding: 11px 12px; font-size: 16px; outline: none; width: 100%; }
+.grid4 input, .qty-row input, #search { background: var(--field-bg); border: 1.5px solid var(--field-line); border-radius: 12px; padding: 11px 12px; font-size: 16px; outline: none; width: 100%; }
 .grid4 input:focus, .qty-row input:focus, #search:focus { border-color: var(--accent); }
 .grid4 .full { grid-column: 1 / -1; margin-top: 4px; }
 
@@ -165,7 +167,7 @@ h2 { font-size: 16px; font-weight: 700; margin: 0; }
 .rep-form .lbl { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
 .rep-form .lbl small { color: var(--muted); font-weight: 500; }
 .rep-form input[type=text], .rep-form input:not([type]), .rep-form textarea, .grid4 input {
-  width: 100%; background: var(--bg); border: 1.5px solid transparent; border-radius: 12px; padding: 11px 12px; font: inherit; font-size: 16px; color: var(--text); outline: none; }
+  width: 100%; background: var(--field-bg); border: 1.5px solid var(--field-line); border-radius: 12px; padding: 11px 12px; font: inherit; font-size: 16px; color: var(--text); outline: none; }
 .rep-form input:focus, .rep-form textarea:focus { border-color: var(--accent); }
 .rep-form textarea { resize: vertical; }
 .row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
@@ -218,7 +220,8 @@ h2 { font-size: 16px; font-weight: 700; margin: 0; }
 .anketa h3 { margin: 18px 0 8px; font-size: 15px; }
 .anketa .fld { margin-bottom: 12px; }
 .anketa .lbl { font-size: 13px; font-weight: 600; margin-bottom: 5px; }
-.anketa input, .anketa textarea, .anketa select { width: 100%; background: var(--bg); border: 1.5px solid transparent; border-radius: 12px; padding: 10px 12px; font: inherit; font-size: 16px; color: var(--text); outline: none; }
+.anketa input, .anketa textarea, .anketa select { width: 100%; background: var(--field-bg); border: 1.5px solid var(--field-line); border-radius: 12px; padding: 10px 12px; font: inherit; font-size: 16px; color: var(--text); outline: none; }
+.anketa input:focus, .anketa textarea:focus, .anketa select:focus { border-color: var(--accent); }
 .anketa textarea { min-height: 64px; resize: vertical; }
 .disclaimer { font-size: 12px; color: var(--muted); margin: 10px 0 14px; }
 
