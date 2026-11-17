@@ -7,10 +7,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="app.css?v=1794938976">
-  <script src="https://telegram.org/js/telegram-web-app.js?v=1794938976"></script>
+  <link rel="stylesheet" href="app.css?v=1794940571">
+  <script src="https://telegram.org/js/telegram-web-app.js?v=1794940571"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie_light.min.js"></script>
-  <script src="config.js?v=1794938976"></script>
+  <script src="config.js?v=1794940571"></script>
 </head>
 <body class="booting">
   <div class="boot" id="boot"><div class="spin" id="bootSpin"></div><div class="boot-anim" id="bootAnim"></div></div>
@@ -45,11 +45,6 @@
         <div class="card"><h2>Замеры: старт → сейчас</h2><div id="measProgress"></div></div>
       </section>
 
-      <!-- Рационы -->
-      <section class="tab" id="tab-rations">
-        <div class="card ration-intro" id="rationIntro"></div>
-        <div id="rationList"></div>
-      </section>
 
       <!-- Меню -->
       <section class="tab" id="tab-menu">
@@ -76,8 +71,6 @@
 
     <nav class="tabs">
       <button data-tab="report" class="active"><span class="ic">📝</span>Отчёт</button>
-      <!-- Вкладка «Рационы» временно отключена (код и лист в таблице остаются):
-      <button data-tab="rations"><span class="ic">🥗</span>Рационы</button> -->
       <button data-tab="menu"><span class="ic">📋</span>Меню</button>
       <button data-tab="progress"><span class="ic">📏</span>Замеры</button>
       <button data-tab="results"><span class="ic">📊</span>Итоги</button>
@@ -92,21 +85,6 @@
         <button class="close" data-close>✕</button>
       </div>
       <div id="rBody"></div>
-    </div>
-  </div>
-
-  <!-- Рацион -->
-  <div class="sheet hidden" id="rationSheet">
-    <div class="sheet-body">
-      <div class="sheet-top">
-        <div><div class="q-title" id="raTitle"></div><div class="muted" id="raSub"></div></div>
-        <button class="close" data-close>✕</button>
-      </div>
-      <div class="seg" id="raSeg">
-        <button data-v="meals" class="on">Блюда</button>
-        <button data-v="shop">🛒 Список покупок</button>
-      </div>
-      <div class="results" id="raBody"></div>
     </div>
   </div>
 
@@ -126,6 +104,6 @@
   </div>
 
   <div class="toast hidden" id="toast"></div>
-  <script src="app.js?v=1794938976"></script>
+  <script src="app.js?v=1794940571"></script>
 </body>
 </html>
