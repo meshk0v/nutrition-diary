@@ -129,7 +129,7 @@
     }
     const field = q => {
       const [key, label, type] = q;
-      if (type.startsWith('select:')) return `<select name="${key}"><option value=""></option>${type.slice(7).split('|').map(o => `<option>${esc(o)}</option>`).join('')}</select>`;
+      if (type.startsWith('select:')) return `<div class="choice"><input type="hidden" name="${key}">${type.slice(7).split('|').map(o => `<button type="button" data-v="${esc(o)}">${esc(o)}</button>`).join('')}</div>`;
       if (type === 'num') return `<input name="${key}" inputmode="decimal">`;
       // текстовые ответы — растущее поле: ширина строки, дальше растёт по мере набора
       return `<textarea name="${key}" class="grow" rows="${type === 'area' ? 3 : 2}"></textarea>`;
@@ -140,6 +140,14 @@
       ${e.anketa.map(sec => `<h3>${esc(sec[0])}</h3>` + sec[1].map(q => `<div class="fld"><div class="lbl">${esc(q[1])}</div>${field(q)}</div>`).join('')).join('')}
       <div class="disclaimer">Программа не заменяет врача. При наличии заболеваний консультация с лечащим врачом обязательна.</div>
       <button class="btn primary full" type="submit">Отправить анкету тренеру</button></form>`;
+    // Выбор из вариантов — кнопками; повторный тап снимает выбор
+    $$('#anketaForm .choice').forEach(box => box.addEventListener('click', ev => {
+      const b = ev.target.closest('button'); if (!b) return;
+      const was = b.classList.contains('on');
+      $$('button', box).forEach(x => x.classList.remove('on'));
+      $('input', box).value = was ? '' : b.dataset.v;
+      if (!was) { b.classList.add('on'); haptic(); }
+    }));
     $('#anketaForm').addEventListener('submit', async ev => {
       ev.preventDefault();
       const fd = new FormData(ev.target), answers = {};

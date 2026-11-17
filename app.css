@@ -318,3 +318,8 @@ textarea.grow { resize: none; overflow-y: auto; line-height: 1.4; display: block
 .boot-anim { display: none; width: 220px; height: 220px; }
 .boot.has-anim .boot-anim { display: block; }
 .boot.has-anim .spin { display: none; }
+
+/* Выбор вариантов кнопками (анкета) */
+.choice { display: flex; flex-wrap: wrap; gap: 8px; }
+.choice button { flex: 1 1 auto; padding: 11px 14px; border-radius: 12px; background: var(--field-bg); border: 1.5px solid var(--field-line); color: var(--text); font: inherit; font-size: 15px; font-weight: 600; }
+.choice button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
