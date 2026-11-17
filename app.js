@@ -43,6 +43,14 @@
   const autoGrow = el => { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight + 2, window.innerHeight * 0.5) + 'px'; };
   document.addEventListener('input', e => { if (e.target.classList && e.target.classList.contains('grow')) autoGrow(e.target); });
 
+  // Тап по пустому месту (не по полю, кнопке или ссылке) убирает клавиатуру
+  document.addEventListener('click', e => {
+    const a = document.activeElement;
+    if (!a || !/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return;
+    if (e.target.closest('input, textarea, select, button, a, label')) return;
+    a.blur();
+  });
+
   /* ---------- API ---------- */
   async function api(action, data = {}) {
     try {
