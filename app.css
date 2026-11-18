@@ -366,3 +366,4 @@ textarea.grow { resize: none; overflow-y: auto; line-height: 1.4; display: block
 .fs-how { margin-top: 8px; font-size: 13px; color: var(--muted); line-height: 1.45; }
 .banner.stale { background: rgba(230, 126, 34, .14); color: #b35f00; }
 .banner.stale .link { font-weight: 700; color: inherit; text-decoration: underline; padding: 0; }
+.choice.yn button { flex: 1 1 0; }

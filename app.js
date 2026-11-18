@@ -599,9 +599,12 @@
         <label>☕ Чай/кофе, кружек<input name="tea" inputmode="numeric" value="${val('tea')}" placeholder="без добавок"></label>
       </div>
         <label class="toggle"><input type="checkbox" name="stepsTr" ${v.stepsTr === 'с тренировкой' ? 'checked' : ''}> шаги с учётом тренировки</label></div>
+      <div class="fld"><div class="lbl">🏋️ Была ли тренировка</div>
+        <div class="choice yn" id="trainingYN">${['Да', 'Нет'].map(o => `<button type="button" data-v="${o}" class="${trainVal(v.training) === o ? 'on' : ''}">${o === 'Да' ? '✅ Да' : '❌ Нет'}</button>`).join('')}</div>
+        <input type="hidden" name="training" value="${esc(trainVal(v.training))}"></div>
       <div class="fld"><div class="row2">
-        <label>🏋️ Тренировка<input name="training" value="${esc(v.training || '')}" placeholder="нет / силовая 60 мин"></label>
         <label>🥦 Растительность, г<input name="veg" inputmode="numeric" value="${val('veg')}" placeholder="овощи и фрукты"></label>
+        <span></span>
       </div></div>
       <div class="fld"><div class="lbl">💬 Комментарий для тренера</div>
         <textarea name="note" class="grow" rows="3" placeholder="необязательно">${esc(v.note || '')}</textarea></div>
@@ -613,6 +616,9 @@
     fsData = null;
     if (v.fatsecret) checkFs(v.fatsecret); else updateManual();
   }
+
+  // «Была ли тренировка»: Да / Нет (старые ответы текстом: «нет», «-» → Нет; любой другой текст → Да)
+  function trainVal(t) { const s = String(t || '').trim().toLowerCase(); if (!s) return ''; return /^(нет|no|-|−|0)$/.test(s) ? 'Нет' : 'Да'; }
 
   /* ---------- FatSecret: цифры дня по ссылке экспорта ---------- */
   let fsData = null, fsTimer = null, fsReq = 0, fsBusy = false, manualForEdit = false;
@@ -672,6 +678,13 @@
     renderReport(); window.scrollTo(0, 0); haptic();
   });
   $('#reportForm').addEventListener('click', e => {
+    const yn = e.target.closest('#trainingYN button');
+    if (yn) {
+      const was = yn.classList.contains('on');
+      $$('#trainingYN button').forEach(x => x.classList.toggle('on', !was && x === yn));
+      $('#reportForm [name=training]').value = was ? '' : yn.dataset.v;
+      haptic(); return;
+    }
     const h = e.target.closest('[data-h]');
     if (h) {
       $('#reportForm [name=hunger]').value = h.dataset.h;
