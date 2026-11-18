@@ -595,14 +595,12 @@
         <label>💧 Вода, л<input name="water" inputmode="decimal" value="${val('water')}" placeholder="примерно"></label>
       </div></div>
       <div class="fld"><div class="row2">
-        <label>👣 Шаги<input name="steps" inputmode="numeric" value="${val('steps')}"></label>
         <label>☕ Чай/кофе, кружек<input name="tea" inputmode="numeric" value="${val('tea')}" placeholder="без добавок"></label>
-      </div>
-        <label class="toggle"><input type="checkbox" name="stepsTr" ${v.stepsTr === 'с тренировкой' ? 'checked' : ''}> шаги с учётом тренировки</label></div>
-      <div class="fld"><div class="row2">
         <label>🥦 Растительность, г<input name="veg" inputmode="numeric" value="${val('veg')}" placeholder="овощи и фрукты"></label>
-        <span></span>
       </div></div>
+      <div class="fld steps-fld">
+        <label>👣 Шаги<input name="steps" inputmode="numeric" value="${val('steps')}" placeholder="например, 8000"></label>
+        <label class="toggle"><input type="checkbox" name="stepsTr" ${v.stepsTr === 'с тренировкой' ? 'checked' : ''}> шаги с учётом тренировки</label></div>
       <div class="fld"><div class="lbl">🏋️ Была ли тренировка</div>
         <div class="choice yn" id="trainingYN">${['Да', 'Нет'].map(o => `<button type="button" data-v="${o}" class="${trainVal(v.training) === o ? 'on' : ''}">${o === 'Да' ? '✅ Да' : '❌ Нет'}</button>`).join('')}</div>
         <input type="hidden" name="training" value="${esc(trainVal(v.training))}"></div>
