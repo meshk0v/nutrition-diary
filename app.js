@@ -249,6 +249,18 @@
   // Кнопка «Рецепт →» у блюд, для которых есть рецепт (false — скрыть)
   const SHOW_RECIPES = true;
 
+  // Блюда одного приёма пищи — в одну карточку (порядок приёмов — как в меню); i — номер блюда в дне для кнопки «Рецепт»
+  function mealGroups(meals) {
+    const groups = [], by = {};
+    meals.forEach((x, i) => {
+      let g = by[x.meal];
+      if (!g) { g = by[x.meal] = { name: x.meal, kcal: 0, items: [] }; groups.push(g); }
+      g.kcal += Number(x.kcal) || 0;
+      g.items.push({ x, i });
+    });
+    return groups;
+  }
+
   function renderMenu() {
     const m = state.menu;
     if (!m) {
@@ -262,12 +274,15 @@
     $('#dayChips').innerHTML = m.days.map((d, i) => `<button data-d="${i}" class="${i === menuDay ? 'on' : ''} ${i === todayIdx ? 'today' : ''}">${d.day}<small>${parseDate(d.date).getDate()}</small></button>`).join('');
     const day = m.days[menuDay];
     $('#dayMeals').innerHTML = `<div class="day-total"><span>${day.full}</span><span>${fmt(day.total.kcal)} ккал · Б ${fmt(day.total.p)} Ж ${fmt(day.total.f)} У ${fmt(day.total.c)}</span></div>` +
-      (day.meals.length ? day.meals.map((x, i) => `
+      (day.meals.length ? mealGroups(day.meals).map(g => `
         <div class="meal">
-          <div class="when">${esc(x.meal)}</div>
-          <div class="dish">${esc(x.item)}</div>
-          <div class="nut">${fmt(x.qty, 2)} ${esc(x.unit)}${x.grams && x.unit !== 'г' ? ' · ≈' + fmt(x.grams) + ' г' : ''} · ${fmt(x.kcal)} ккал · Б ${fmt(x.p, 1)} Ж ${fmt(x.f, 1)} У ${fmt(x.c, 1)}</div>
-          ${SHOW_RECIPES && state.recipes && state.recipes[x.item] ? `<div class="row"><button class="link" data-recipe="${i}">Рецепт →</button></div>` : ''}
+          <div class="meal-head"><span class="when">${esc(g.name)}</span><span class="meal-kcal">${fmt(g.kcal)} ккал</span></div>
+          ${g.items.map(({ x, i }) => `
+          <div class="dish-row">
+            <div class="dish">${esc(x.item)}</div>
+            <div class="nut">${fmt(x.qty, 2)} ${esc(x.unit)}${x.grams && x.unit !== 'г' ? ' · ≈' + fmt(x.grams) + ' г' : ''} · ${fmt(x.kcal)} ккал · Б ${fmt(x.p, 1)} Ж ${fmt(x.f, 1)} У ${fmt(x.c, 1)}</div>
+            ${SHOW_RECIPES && state.recipes && state.recipes[x.item] ? `<div class="row"><button class="link" data-recipe="${i}">Рецепт →</button></div>` : ''}
+          </div>`).join('')}
         </div>`).join('') : '<div class="empty">На этот день блюд нет</div>');
   }
   $('#dayChips').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; menuDay = +b.dataset.d; renderMenu(); haptic(); });
