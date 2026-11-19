@@ -102,7 +102,7 @@
       if (!tourSeen()) setTimeout(startTour, 400); // первый запуск — короткое обучение
     } catch (e) {
       // Ошибки доступа (нет в группе, не удалось войти, участие завершено) — всегда показываем, кэш стираем
-      if (!state || ['not_registered', 'unauthorized', 'finished', 'no_demo', 'maintenance'].includes(e.code)) {
+      if (!state || ['not_registered', 'unpaid', 'unauthorized', 'finished', 'no_demo', 'maintenance'].includes(e.code)) {
         try { localStorage.removeItem(CACHE_KEY); } catch (err) {}
         showError(e);
       } else {
@@ -181,6 +181,7 @@
     if (e.code === 'not_registered' && e.anketa) return showAnketa(e);
     const msgs = {
       not_registered: ['🙋', 'Вас пока нет в группе', 'Тренер добавит вас — после этого откройте дневник снова.'],
+      unpaid: ['💳', 'Доступ после оплаты', e.message],
       unauthorized: ['🔒', 'Не удалось войти', e.message],
       finished: ['👋', 'Участие завершено', e.message],
       no_demo: ['📱', 'Откройте из Telegram', e.message]
