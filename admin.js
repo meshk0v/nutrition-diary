@@ -149,7 +149,7 @@
     const f = { all: () => true, late: p => p.late, out: p => p.out, meas: p => p.measureLate }[statFilter];
     const list = st.people.filter(f);
     $('#people').innerHTML = list.length ? list.map(p => {
-      const kc = p.kcal == null ? '<span class="p-kcal">—</span>'
+      const kc = p.kcal == null ? `<span class="p-plan">${p.target ? 'план ' + fmt(p.target) + ' ккал' : ''}</span>`
         : `<span class="p-kcal ${p.out ? 'bad' : 'ok'}">${fmt(p.kcal)}${p.target ? ' / ' + fmt(p.target) : ''} ккал${p.dev != null ? ' · ' + (p.dev > 0 ? '+' : '') + p.dev + '%' : ''}</span>`;
       const rep = p.lastReport == null ? '<span class="bad">отчётов нет</span>'
         : p.noReport === 0 ? 'отчёт сегодня' : `<span class="${p.late ? 'bad' : ''}">отчёт ${p.noReport} дн. назад</span>`;
