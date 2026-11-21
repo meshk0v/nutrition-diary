@@ -96,6 +96,7 @@
     const navName = name === 'editor' ? 'menu' : name;
     $$('.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === navName));
     if (name !== 'editor') ed = null;
+    if (name === 'settings') loadSettings();
     window.scrollTo(0, 0);
     syncBack();
   }
@@ -136,7 +137,7 @@
     if (!h || /^tgWebApp/.test(h)) return;
     const [tab, code] = h.split('=');
     if (tab === 'menu' && code) openEditor(code);
-    else if (['stats', 'menu', 'assign', 'products'].includes(tab)) showTab(tab);
+    else if (['stats', 'menu', 'assign', 'products', 'settings'].includes(tab)) showTab(tab);
   }
 
   /* ---------- Сводка ---------- */
@@ -469,6 +470,118 @@
     closeSheets(); renderProducts(); haptic('ok'); toast(r.created ? 'Продукт добавлен' : 'Сохранено');
   });
 
+  /* ---------- Настройки: настройки бота, тексты сообщений, вопросы анкеты ---------- */
+  let SET = null;            // ответ adm_settings
+  let setPart = 'settings';
+  let editing = null;        // {kind: 'setting'|'text'|'question', item}
+  const DAYS_ALL = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+  function daysWord(v) {
+    const d = String(v || '').split(/[\s,;]+/).filter(Boolean);
+    if (!d.length || d.length === 7) return 'каждый день';
+    if (d.join(',') === 'Пн,Вт,Ср,Чт,Пт') return 'по будням';
+    return d.join(', ');
+  }
+  function valueWord(s) {
+    if (s.type === 'days') return daysWord(s.value);
+    if (s.type === 'select' && DAY_WORD[s.value]) return 'в ' + DAY_WORD[s.value].replace('среда', 'среду').replace('пятница', 'пятницу').replace('суббота', 'субботу');
+    if (s.key === 'CALORIE_CORRIDOR') return '±' + s.value + '%';
+    if (s.key === 'REPEAT_WEEKS') return s.value + ' нед.';
+    if (s.type === 'number') return s.value + ' дн.';
+    return s.value || '—';
+  }
+  async function loadSettings() {
+    if (SET) return renderSettings();
+    $('#setList').innerHTML = '<div class="empty">Загрузка…</div>';
+    try { SET = await api('adm_settings'); renderSettings(); }
+    catch (e) { $('#setList').innerHTML = `<div class="empty">Не удалось загрузить: ${esc(e.message)}</div>`; }
+  }
+  function renderSettings() {
+    $$('#setPart button').forEach(b => b.classList.toggle('on', b.dataset.p === setPart));
+    if (!SET) return;
+    let html = '';
+    if (setPart === 'settings') {
+      html += `<div class="hint-line">⏰ Время — ${SET.tz === 'Europe/Moscow' ? 'по Москве' : 'по поясу ' + esc(SET.tz)}. Нажмите на строку, чтобы изменить.</div>`;
+      const groups = [];
+      SET.settings.forEach(s => { let g = groups.find(x => x.name === s.group); if (!g) { g = { name: s.group, items: [] }; groups.push(g); } g.items.push(s); });
+      html += groups.map(g => `<div class="m-group">${esc(g.name)}</div><div class="set-card">` +
+        g.items.map(s => `<button class="set-row" data-k="${s.key}"><span>${esc(s.label)}</span><b>${esc(valueWord(s))}</b></button>`).join('') + '</div>').join('');
+    } else if (setPart === 'texts') {
+      html += '<div class="hint-line">💬 Что бот пишет участникам. Нажмите, чтобы изменить текст.</div>';
+      html += '<div class="set-card">' + SET.texts.map(t => `<button class="set-row tall" data-t="${t.key}"><span><b class="t-name">${esc(t.label)}</b><small>${esc(plain(t.text).slice(0, 90))}${plain(t.text).length > 90 ? '…' : ''}</small></span><i>›</i></button>`).join('') + '</div>';
+    } else {
+      html += '<div class="hint-line">📝 Вопросы анкеты для новых людей. Можно поменять формулировку. Добавить или удалить вопрос — через меня (разработчика).</div>';
+      const secs = [];
+      SET.questions.forEach(q => { let s = secs.find(x => x.name === q.section); if (!s) { s = { name: q.section, items: [] }; secs.push(s); } s.items.push(q); });
+      html += secs.map(s => `<div class="m-group">${esc(s.name)}</div><div class="set-card">` +
+        s.items.map(q => `<button class="set-row tall" data-q="${q.key}"><span>${esc(q.text)}${q.text !== q.def ? ' <em class="changed">изменён</em>' : ''}</span><i>›</i></button>`).join('') + '</div>').join('');
+    }
+    $('#setList').innerHTML = html;
+  }
+  const plain = s => String(s || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+  $('#setPart').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; setPart = b.dataset.p; haptic(); renderSettings(); });
+  $('#setList').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b || !SET) return;
+    if (b.dataset.k) openSetting(SET.settings.find(s => s.key === b.dataset.k));
+    else if (b.dataset.t) openText('text', SET.texts.find(t => t.key === b.dataset.t));
+    else if (b.dataset.q) openText('question', SET.questions.find(q => q.key === b.dataset.q));
+  });
+
+  // одна настройка
+  function openSetting(s) {
+    editing = { kind: 'setting', item: s, days: String(s.value || '').split(/[\s,;]+/).filter(Boolean), choice: s.value };
+    $('#stTitle').textContent = s.label;
+    $('#stHint').textContent = s.hint || '';
+    let body = '';
+    if (s.type === 'time') body = `<input class="f-in" id="stVal" type="time" value="${esc(s.value)}">`;
+    else if (s.type === 'number') body = `<input class="f-in" id="stVal" inputmode="numeric" value="${esc(s.value)}"><div class="muted" style="margin-top:6px">От ${s.min} до ${s.max}</div>`;
+    else if (s.type === 'ids') body = `<input class="f-in" id="stVal" inputmode="numeric" value="${esc(s.value)}"><div class="muted" style="margin-top:6px">Свой ID человек узнаёт, написав боту /id</div>`;
+    else if (s.type === 'days') body = `<div class="chips" id="stDays"></div><button class="link" id="stAll">Выбрать все дни</button>`;
+    else body = '<div class="chips" id="stOpts"></div>';
+    $('#stBody').innerHTML = body;
+    renderSettingChips();
+    openSheet('#setSheet');
+  }
+  function renderSettingChips() {
+    const s = editing.item;
+    if (s.type === 'days') $('#stDays').innerHTML = DAYS_ALL.map(d => `<button data-d="${d}" class="${editing.days.includes(d) ? 'on' : ''}">${d}</button>`).join('');
+    if (s.type === 'select') $('#stOpts').innerHTML = s.options.map(o => `<button data-o="${esc(o)}" class="${o === editing.choice ? 'on' : ''}">${esc(DAY_WORD[o] ? DAY_WORD[o] : o)}</button>`).join('');
+  }
+  $('#stBody').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b || !editing) return;
+    if (b.id === 'stAll') editing.days = DAYS_ALL.slice();
+    else if (b.dataset.d) editing.days = editing.days.includes(b.dataset.d) ? editing.days.filter(x => x !== b.dataset.d) : editing.days.concat(b.dataset.d);
+    else if (b.dataset.o) editing.choice = b.dataset.o;
+    haptic(); renderSettingChips();
+  });
+  $('#stSave').addEventListener('click', async e => {
+    const s = editing.item;
+    const value = s.type === 'days' ? DAYS_ALL.filter(d => editing.days.includes(d)).join(',') : s.type === 'select' ? editing.choice : $('#stVal').value.trim();
+    const r = await busy(e.currentTarget, 'Сохраняю…', () => api('adm_setting_save', { key: s.key, value }));
+    if (!r) return;
+    SET.settings = r.settings; closeSheets(); renderSettings(); haptic('ok'); toast('Сохранено. Заработает в течение 10 минут');
+  });
+
+  // текст сообщения или вопрос анкеты
+  function openText(kind, t) {
+    editing = { kind, item: t };
+    $('#txTitle').textContent = kind === 'question' ? 'Вопрос анкеты · ' + t.section : t.label;
+    $('#txHelp').innerHTML = kind === 'question'
+      ? 'Одной строкой. Человек увидит этот вопрос в анкете. Смысл лучше не менять — ответы на старые и новые вопросы окажутся в одной колонке.'
+      : 'Можно вставлять: <b>{имя}</b> — имя участника, <b>{калораж}</b> — его калории, <b>{период}</b> — даты недели.<br>Жирный текст: &lt;b&gt;слово&lt;/b&gt;. Новая строка — просто Enter.';
+    $('#txText').value = t.text;
+    $('#txText').rows = kind === 'question' ? 2 : 8;
+    $('#txReset').classList.toggle('hidden', t.text === t.def);
+    openSheet('#textSheet');
+  }
+  async function saveText(btn, reset) {
+    const t = editing.item;
+    const r = await busy(btn, reset ? 'Возвращаю…' : 'Сохраняю…', () => api('adm_text_save', reset ? { key: t.key, reset: true } : { key: t.key, text: $('#txText').value }));
+    if (!r) return;
+    SET.texts = r.texts; SET.questions = r.questions; closeSheets(); renderSettings(); haptic('ok'); toast(reset ? 'Вернули исходный текст' : 'Сохранено');
+  }
+  $('#txSave').addEventListener('click', e => saveText(e.currentTarget, false));
+  $('#txReset').addEventListener('click', e => saveText(e.currentTarget, true));
+
   /* ---------- Обучение (подробное, показывается при первом входе; «?» — снова) ---------- */
   const tourUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 'demo';
   const TOUR_KEY = 'admin-tour-v2-' + tourUser;
@@ -489,6 +602,10 @@
     { tab: 'assign', el: '#asList', ic: '✕', t: 'Убрать назначение', x: 'Здесь список всех особых меню.<br>Нажмите ✕ — и человек снова будет получать обычное меню под свои калории.' },
     { tab: 'products', el: '.tabs button[data-tab="products"]', ic: '🥦', t: 'Продукты', x: 'Здесь все продукты и сколько в них калорий, белков, жиров и углеводов на 100 грамм.<br>По ним считаются все меню.' },
     { tab: 'products', el: '.search-row', ic: '🔍', t: 'Найти или добавить продукт', x: '<b>Найти:</b> начните писать название в поиске.<br><b>Исправить:</b> нажмите на продукт и поменяйте цифры.<br><b>Добавить:</b> нажмите «➕ Новый». Цифры берите с упаковки или из FatSecret.<br><br>Если продукт считают штуками (яйцо, яблоко) — напишите, сколько весит одна штука.' },
+    { tab: 'settings', el: '.tabs button[data-tab="settings"]', ic: '⚙️', t: 'Настройки', x: 'Здесь можно поменять, <b>когда</b> бот пишет и <b>что</b> он пишет.<br>Сверху три кнопки: «Настройки», «Тексты», «Анкета».' },
+    { tab: 'settings', el: '#setPart', ic: '⏰', t: 'Настройки', x: '<b>Настройки</b> — во сколько и в какие дни бот напоминает об отчёте и замерах, когда присылает вам сводку и меню участникам.<br><br>Нажмите на строку → выберите время или дни → «Сохранить». Заработает в течение 10 минут.' },
+    { tab: 'settings', el: '#setPart', ic: '💬', t: 'Тексты', x: '<b>Тексты</b> — что бот пишет людям: приветствие, напоминания, ответы.<br><br>Нажмите на текст → исправьте → «Сохранить». Передумали — «Вернуть как было».<br>{имя} бот сам заменит на имя человека.' },
+    { tab: 'settings', el: '#setPart', ic: '📝', t: 'Анкета', x: '<b>Анкета</b> — вопросы, на которые отвечает новый человек.<br><br>Можно поменять формулировку вопроса. Смысл лучше оставить прежним.' },
     { tab: 'stats', el: '#reloadBtn', ic: '⟳', t: 'Обновить', x: 'Если что-то поменяли прямо в таблице — нажмите эту кнопку, и здесь всё обновится.<br><br>Иногда первая загрузка идёт 10–15 секунд. Это нормально, просто подождите.' },
     { tab: 'stats', el: '#helpBtn', ic: '❓', t: 'Забыли, что где?', x: 'Нажмите на вопросик — и я снова всё покажу.' },
     { ic: '✅', t: 'Готово!', x: 'Теперь вы знаете всё самое главное.<br><br>Анкеты новых людей, отчёты и оплаты по-прежнему приходят вам в чат с ботом.' }

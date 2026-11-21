@@ -7,10 +7,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="app.css?v=1795259107">
-  <link rel="stylesheet" href="admin.css?v=1795259107">
-  <script src="https://telegram.org/js/telegram-web-app.js?v=1795259107"></script>
-  <script src="config.js?v=1795259107"></script>
+  <link rel="stylesheet" href="app.css?v=1795262675">
+  <link rel="stylesheet" href="admin.css?v=1795262675">
+  <script src="https://telegram.org/js/telegram-web-app.js?v=1795262675"></script>
+  <script src="config.js?v=1795262675"></script>
 </head>
 <body class="booting">
   <div class="boot" id="boot"><div class="spin"></div></div>
@@ -86,6 +86,16 @@
         <div class="muted" id="prCount" style="margin:0 2px 8px"></div>
         <div id="prList"></div>
       </section>
+
+      <!-- Настройки -->
+      <section class="tab" id="tab-settings">
+        <div class="seg" id="setPart">
+          <button data-p="settings" class="on">Настройки</button>
+          <button data-p="texts">Тексты</button>
+          <button data-p="questions">Анкета</button>
+        </div>
+        <div id="setList"></div>
+      </section>
     </main>
 
     <nav class="tabs">
@@ -93,6 +103,7 @@
       <button data-tab="menu"><span class="ic">📋</span>Меню</button>
       <button data-tab="assign"><span class="ic">🗓</span>Назначения</button>
       <button data-tab="products"><span class="ic">🥦</span>Продукты</button>
+      <button data-tab="settings"><span class="ic">⚙️</span>Настройки</button>
     </nav>
   </div>
 
@@ -187,6 +198,33 @@
     </div>
   </div>
 
+  <!-- Одна настройка -->
+  <div class="sheet hidden" id="setSheet">
+    <div class="sheet-body compact">
+      <div class="sheet-top">
+        <div class="q-title" id="stTitle"></div>
+        <button class="close" data-close>✕</button>
+      </div>
+      <div class="muted" id="stHint" style="margin-bottom:12px"></div>
+      <div id="stBody"></div>
+      <button class="btn primary full" id="stSave" style="margin-top:16px">Сохранить</button>
+    </div>
+  </div>
+
+  <!-- Текст сообщения / вопрос анкеты -->
+  <div class="sheet hidden" id="textSheet">
+    <div class="sheet-body compact">
+      <div class="sheet-top">
+        <div class="q-title" id="txTitle"></div>
+        <button class="close" data-close>✕</button>
+      </div>
+      <div class="steps" id="txHelp"></div>
+      <textarea class="f-in" id="txText" rows="8" style="margin-top:12px"></textarea>
+      <button class="btn primary full" id="txSave" style="margin-top:12px">Сохранить</button>
+      <button class="btn full" id="txReset" style="margin-top:8px">↩︎ Вернуть как было</button>
+    </div>
+  </div>
+
   <!-- Подтверждение -->
   <div class="sheet hidden" id="confirmSheet">
     <div class="sheet-body compact">
@@ -214,6 +252,6 @@
   </div>
 
   <div class="toast hidden" id="toast"></div>
-  <script src="admin.js?v=1795259107"></script>
+  <script src="admin.js?v=1795262675"></script>
 </body>
 </html>

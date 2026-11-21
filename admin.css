@@ -107,3 +107,17 @@ textarea.f-in { resize: vertical; min-height: 110px; font-size: 14px; }
 
 /* Подсказка в одну строку сверху вкладки */
 .hint-line { color: var(--muted); font-size: 13.5px; margin: 0 2px 10px; }
+
+/* Настройки */
+.set-card { background: var(--card); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; margin-bottom: 4px; }
+.set-row { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 12px; text-align: left; padding: 13px 14px; border-top: 1px solid var(--line); }
+.set-row:first-child { border-top: 0; }
+.set-row > b { color: var(--accent); white-space: nowrap; font-weight: 800; }
+.set-row > i { color: var(--muted); font-style: normal; font-size: 18px; }
+.set-row.tall > span { display: block; }
+.set-row .t-name { display: block; color: var(--text); font-weight: 700; }
+.set-row small { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+.set-row em.changed { font-style: normal; font-size: 11px; color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 1px 6px; margin-left: 4px; }
+#stBody input[type=time] { font-size: 22px; font-weight: 700; }
+#stBody .chips button { min-width: 48px; }
+.tabs button { max-width: 96px; }
