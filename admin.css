@@ -1,4 +1,5 @@
 /* Админка тренера: дополняет app.css (цвета, карточки, вкладки, нижние панели — оттуда) */
+.top .top-right { display: flex; gap: 8px; }
 .top .icon-btn { width: 38px; height: 38px; border-radius: 50%; background: var(--card); box-shadow: var(--shadow); font-size: 18px; color: var(--muted); }
 .top .icon-btn.busy { animation: spin 1s linear infinite; color: var(--accent); }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -93,3 +94,13 @@ textarea.f-in { resize: vertical; min-height: 110px; font-size: 14px; }
   .pr-item small { white-space: normal; }
   .f-four { grid-template-columns: 1fr 1fr; }
 }
+
+/* Обучение админки: подсказки длиннее, чем у участников */
+#tour .tour-x { font-size: 14px; }
+#tour .tour-x b { color: var(--text); }
+#tour .tour-nav { gap: 8px; }
+#tour .tour-dots { flex-wrap: wrap; max-width: 120px; }
+#tour .tour-dots i { width: 6px; height: 6px; }
+#tour .tour-dots i.on { width: 14px; }
+#tourBack { margin-left: auto; }
+#tourBack + #tourSkip { margin-left: 0; }

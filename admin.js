@@ -114,7 +114,7 @@
       const first = !S;
       apply(await api('adm_init'));
       if (ed) await openEditor(ed.menu.code, ed.day);
-      else if (first) openFromHash();
+      else if (first) { openFromHash(); if (!tourSeen()) setTimeout(startTour, 500); }
     }
     catch (e) { showError(e); }
     finally { b.classList.remove('busy'); document.body.classList.remove('booting'); }
@@ -454,6 +454,76 @@
     items = r.items.map(a => ({ name: a[0], type: a[1], kcal: a[2], p: a[3], f: a[4], c: a[5], portion: a[6] || 0 }));
     closeSheets(); renderProducts(); haptic('ok'); toast(r.created ? 'Продукт добавлен' : 'Сохранено');
   });
+
+  /* ---------- Обучение (подробное, показывается при первом входе; «?» — снова) ---------- */
+  const tourUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 'demo';
+  const TOUR_KEY = 'admin-tour-v1-' + tourUser;
+  // el — что подсветить (селектор), tab — какую вкладку открыть перед этим; без el — карточка по центру
+  const TOUR = [
+    { ic: '👋', t: 'Это ваша админка', x: 'Всё, что есть в Google Таблице, — теперь с телефона: сводка по участникам, меню, назначения и продукты. Изменения сразу пишутся в ту же таблицу. Покажу, где что, — около минуты.' },
+    { tab: 'stats', el: '.tabs button[data-tab="stats"]', ic: '📊', t: 'Сводка', x: 'Как дела у группы сегодня. Открывается первой.' },
+    { tab: 'stats', el: '#kpi', ic: '🔢', t: 'Главные цифры', x: '<b>Сдали отчёт сегодня</b> — сколько из активных. <b>Без отчёта</b> — кто не отчитывается дольше порога из «Настроек» (обычно 2 дня). <b>Вне коридора</b> — калории сегодня отличаются от плана больше чем на ±15%. <b>Просрочен замер</b> — замера не было больше 7 дней. Красная цифра — есть на кого посмотреть.' },
+    { tab: 'stats', el: '#statFilter', ic: '🔎', t: 'Фильтры', x: 'Показать только тех, кто без отчёта, вне коридора или с просроченным замером. «Все» — вернуть весь список.' },
+    { tab: 'stats', el: '#people .person', ic: '👤', t: 'Карточка участника', x: 'Справа — калории за сегодня «факт / план» и отклонение (зелёным — в коридоре, красным — нет). Если отчёта ещё нет — серым план. Ниже — когда был отчёт и замер, вес, группа и какое меню у него на этой неделе. <b>Полоска слева</b>: красная — давно нет отчёта, оранжевая — вне коридора или просрочен замер.' },
+    { tab: 'menu', el: '.tabs button[data-tab="menu"]', ic: '📋', t: 'Меню', x: 'Все меню: смотреть, менять продукты, создавать новые недели и загружать меню от ИИ.' },
+    { tab: 'menu', el: '#menuList .m-item', ic: '🗂', t: 'Список меню', x: '<b>Основные</b> («1500 ккал (основное)») действуют каждую неделю. <b>На конкретную неделю</b> («1500 ккал · неделя 24.11.26») — только на свою неделю и главнее основного. Справа — насколько меню в среднем отличается от своего калоража: красным, если больше 10%. Нажмите на меню, чтобы открыть его.' },
+    { tab: 'menu', ic: '✏️', t: 'Внутри меню', x: 'Сверху — дни недели, ниже — приёмы пищи и итог дня. <b>Нажмите на продукт</b> — можно заменить его (поиск по справочнику и рецептам), поменять количество, единицу (г, шт, порц) или приём пищи, удалить. <b>«+ добавить в Завтрак»</b> — новый продукт в этот приём. Калории считаются сразу. Меню на неделю можно удалить кнопкой внизу; основное — нельзя.' },
+    { tab: 'menu', el: '#newWeekBtn', ic: '➕', t: 'Новая неделя', x: 'Копирует последнее меню каждого калоража на выбранную неделю (или только один калораж). Участники получат его сами — останется заменить нужные блюда.' },
+    { tab: 'menu', el: '#aiBtn', ic: '🤖', t: 'Меню от ИИ', x: '1) Укажите калораж, белок и пожелания и нажмите «Скопировать промпт». 2) Вставьте его в ChatGPT или другой ИИ. 3) Ответ ИИ вставьте в поле и нажмите «Загрузить». Новые продукты и рецепты добавятся сами. Если в ответе ошибка — ничего не запишется, а список ошибок можно одной кнопкой скопировать обратно в ИИ.' },
+    { tab: 'assign', el: '.tabs button[data-tab="assign"]', ic: '🗓', t: 'Назначения', x: 'Нужны, только если человеку или группе нужно не то меню, что подходит по калоражу. Без назначения каждый сам получает меню своего калоража.' },
+    { tab: 'assign', el: '#tab-assign .card', ic: '🎯', t: 'Назначить меню', x: 'Выберите неделю, кому (все активные, группа или конкретный участник) и меню — «Назначить». Если на эту неделю у него уже было назначение, оно заменится. <b>Порядок</b>: личное → группа → все активные → по калоражу.' },
+    { tab: 'assign', el: '#asList', ic: '✕', t: 'Список назначений', x: 'Назначения с прошлой недели и дальше. Крестик — убрать: человек снова получит меню по калоражу.' },
+    { tab: 'products', el: '.tabs button[data-tab="products"]', ic: '🥦', t: 'Продукты', x: 'Справочник продуктов с КБЖУ на 100 г. По нему считаются все меню и рецепты.' },
+    { tab: 'products', el: '.search-row', ic: '🔍', t: 'Поиск и новый продукт', x: 'Найдите продукт и нажмите на него, чтобы исправить КБЖУ — все меню пересчитаются. «➕ Новый» — добавить продукт: КБЖУ с упаковки или из FatSecret, для штучных (яйцо, яблоко) — вес 1 шт. Если калории не сходятся с Б/Ж/У, появится подсказка.' },
+    { tab: 'stats', el: '#reloadBtn', ic: '⟳', t: 'Обновить', x: 'Если меняли что-то в самой таблице — нажмите, чтобы подтянуть свежие данные. Первая загрузка иногда идёт 5–15 секунд: так Google просыпается.' },
+    { tab: 'stats', el: '#helpBtn', ic: '❓', t: 'Обучение снова', x: 'Эта кнопка снова покажет подсказки.' },
+    { ic: '✅', t: 'Готово!', x: 'Таблица остаётся основой: всё, что вы меняете здесь, видно в ней, и наоборот. Анкеты, отчёты и оплаты по-прежнему приходят в чат с ботом.' }
+  ];
+  let tourStep = 0;
+  function tourSeen() { try { return !!localStorage.getItem(TOUR_KEY); } catch (e) { return true; } }
+  function startTour() {
+    tourStep = 0;
+    closeSheets();
+    ed = null;
+    $('#tour').classList.remove('hidden');
+    $('#tourDots').innerHTML = TOUR.map(() => '<i></i>').join('');
+    showTourStep();
+  }
+  function endTour() {
+    $('#tour').classList.add('hidden');
+    try { localStorage.setItem(TOUR_KEY, '1'); } catch (e) {}
+    showTab('stats');
+  }
+  function showTourStep() {
+    const s = TOUR[tourStep], spot = $('#tourSpot'), card = $('#tourCard');
+    $('#tourIc').textContent = s.ic; $('#tourT').textContent = s.t; $('#tourX').innerHTML = s.x;
+    $$('#tourDots i').forEach((d, i) => d.classList.toggle('on', i === tourStep));
+    $('#tourNext').textContent = tourStep === TOUR.length - 1 ? 'Понятно 👍' : 'Далее';
+    $('#tourSkip').style.display = tourStep === TOUR.length - 1 ? 'none' : '';
+    $('#tourBack').style.display = tourStep === 0 ? 'none' : '';
+    if (s.tab) showTab(s.tab);
+    const el = s.el && $(s.el);
+    if (el && el.offsetParent !== null) {
+      // блок — в верхнюю часть экрана, чтобы рядом поместилась карточка
+      const r0 = el.getBoundingClientRect();
+      if (r0.top < 60 || r0.bottom > window.innerHeight - 60) window.scrollBy(0, r0.top - 90);
+      const r = el.getBoundingClientRect();
+      const h = Math.min(r.height, window.innerHeight * 0.45);
+      Object.assign(spot.style, { left: (r.left - 4) + 'px', top: (r.top - 4) + 'px', width: (r.width + 8) + 'px', height: (h + 8) + 'px' });
+      spot.classList.remove('center');
+      if (r.top > window.innerHeight / 2) { card.style.top = ''; card.style.bottom = (window.innerHeight - r.top + 14) + 'px'; }
+      else { card.style.bottom = ''; card.style.top = (r.top + h + 18) + 'px'; }
+    } else {
+      spot.classList.add('center');
+      card.style.bottom = ''; card.style.top = '22%';
+    }
+    haptic();
+  }
+  $('#tourNext').addEventListener('click', () => { tourStep += 1; if (tourStep >= TOUR.length) endTour(); else showTourStep(); });
+  $('#tourBack').addEventListener('click', () => { if (tourStep > 0) { tourStep -= 1; showTourStep(); } });
+  $('#tourSkip').addEventListener('click', endTour);
+  $('#helpBtn').addEventListener('click', () => { haptic(); startTour(); });
+  window.addEventListener('resize', () => { if (!$('#tour').classList.contains('hidden')) showTourStep(); });
 
   load();
 })();
