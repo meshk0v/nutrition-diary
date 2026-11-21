@@ -485,10 +485,10 @@
     if (!gate) { gate = document.createElement('div'); gate.id = 'measureGate'; gate.className = 'card'; formCard.parentNode.insertBefore(gate, formCard); }
     const photoClosed = !!(mw && !mw.free && !mw.open);
     const dm = d => `${parseDate(d).getDate()} ${MONTHS[parseDate(d).getMonth()]}`;
-    if (mw && !mw.free) {
-      gate.innerHTML = mw.open
-        ? (mw.done ? `<h2>✅ Фото замеров за этот период загружены</h2>` : `<h2>📸 Сегодня можно загрузить фото замеров</h2><div class="muted" style="margin-top:4px">Откройте форму ниже и добавьте 4 фото. Открыто до ${dm(mw.closesOn)} включительно.</div>`)
-        : `<h2>📸 Фото замеров — раз в 4 недели</h2><div class="muted" style="margin-top:4px">Загрузка фото откроется на ${mw.day}-й день периода — <b>${dm(mw.nextOn)}</b>. Цифры замеров можно вносить каждую неделю, как обычно.</div>`;
+    if (mw && !mw.free && mw.open) {
+      gate.innerHTML = mw.done
+        ? `<h2>✅ Фото замеров за этот период загружены</h2>`
+        : `<h2>📸 Пора отправить фото замеров!</h2><div class="muted" style="margin-top:4px">Сегодня можно загрузить фото замеров — 4 фото с разных сторон. Форма ниже. Открыто до ${dm(mw.closesOn)} включительно.</div>`;
       gate.classList.remove('hidden');
     } else gate.classList.add('hidden');
     const ph = $('#mPhotos') && $('#mPhotos').closest('.full');
