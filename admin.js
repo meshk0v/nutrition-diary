@@ -137,6 +137,7 @@
     if (!h || /^tgWebApp/.test(h)) return;
     const [tab, code] = h.split('=');
     if (tab === 'menu' && code) openEditor(code);
+    else if (tab === 'person' && code) openPerson(code);
     else if (['stats', 'menu', 'assign', 'products', 'settings'].includes(tab)) showTab(tab);
   }
 
@@ -157,10 +158,12 @@
       const rep = p.lastReport == null ? '<span class="bad">отчётов нет</span>'
         : p.noReport === 0 ? 'отчёт сегодня' : `<span class="${p.late ? 'bad' : ''}">последний отчёт ${p.noReport === 1 ? 'вчера' : p.noReport + ' дн. назад'}</span>`;
       const meas = p.lastMeasure ? `<span class="${p.measureLate ? 'warn' : ''}">замеры ${ddmm(p.lastMeasure)}</span>` : '<span class="warn">замеров нет</span>';
-      return `<div class="person ${p.late ? 'late' : p.out || p.measureLate ? 'warn' : ''}">
+      return `<div class="person ${p.late ? 'late' : p.out || p.measureLate ? 'warn' : ''}" data-fio="${esc(p.fio)}">
         <div class="p-top"><span class="p-name">${esc(p.fio)}</span>${kc}</div>
         <div class="p-meta">${rep}<span>·</span>${meas}${p.weight != null ? '<span>·</span><span>' + fmt(p.weight, 1) + ' кг</span>' : ''}${p.group ? '<span>·</span><span>' + esc(p.group) + '</span>' : ''}</div>
+        <div class="p-meta">📅 За неделю: ${p.week ? 'в среднем ' + fmt(p.week.kcal) + ' ккал' + (p.week.dev != null ? ' (' + (p.week.dev > 0 ? '+' : '') + p.week.dev + '%)' : '') + ', отчётов ' + p.week.days : 'отчётов нет'}</div>
         <div class="p-meta">🍽 Меню на эту неделю: ${esc(p.menu || 'нет')}</div>
+        <div class="p-more">Подробнее ›</div>
       </div>`;
     }).join('') : `<div class="empty">${st.people.length ? 'Таких участников нет 👍' : 'Активных участников пока нет'}</div>`;
   }
@@ -170,6 +173,65 @@
     $$('#statFilter button').forEach(x => x.classList.toggle('on', x === b));
     renderStats();
   });
+
+  /* ---------- Карточка участника: вся статистика по одному человеку ---------- */
+  const WD = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+  const sign = n => (n > 0 ? '+' : n < 0 ? '−' : '') + fmt(Math.abs(n), 1);
+  async function openPerson(fio) {
+    $('#psName').textContent = fio;
+    $('#psBody').innerHTML = '<div class="empty">Загрузка…</div>';
+    openSheet('#personSheet');
+    try { renderPerson(await api('adm_person', { fio })); }
+    catch (e) { $('#psBody').innerHTML = `<div class="empty">Не удалось загрузить: ${esc(e.message)}</div>`; }
+  }
+  function renderPerson(d) {
+    const p = d.person, corr = d.corridor;
+    const kcalClass = k => !p.target || k == null ? '' : Math.abs(k / p.target - 1) * 100 > corr ? 'bad' : 'ok';
+    const weekLine = (w, title) => w
+      ? `<div class="ps-week"><b>${title}</b><span>в среднем <b class="${kcalClass(w.kcal)}">${fmt(w.kcal)} ккал</b>${w.dev != null ? ' (' + (w.dev > 0 ? '+' : '') + w.dev + '%)' : ''}${[['Б', w.p], ['Ж', w.f], ['У', w.c]].filter(x => x[1] != null).map(x => ' · ' + x[0] + ' ' + fmt(x[1])).join('')} · отчётов: ${w.days}</span></div>`
+      : `<div class="ps-week"><b>${title}</b><span class="muted">отчётов не было</span></div>`;
+    // вес: первый и последний из замеров и отчётов
+    const wpts = d.measures.filter(m => m.weight != null).map(m => [m.date, m.weight])
+      .concat(d.reports.filter(r => r.weight != null).map(r => [r.date, r.weight])).sort((a, b) => a[0] < b[0] ? -1 : 1);
+    const w0 = wpts[0], w1 = wpts[wpts.length - 1];
+    // калории за 14 дней — столбики
+    const days = [];
+    for (let i = 13; i >= 0; i--) days.push(addDays(S.date, -i));
+    const byDate = {}; d.reports.forEach(r => { byDate[r.date] = r; });
+    const maxK = Math.max(p.target || 0, ...d.reports.map(r => r.kcal || 0)) * 1.1 || 1;
+    const bars = days.map(ds => {
+      const r = byDate[ds], k = r && r.kcal;
+      return `<div class="bar ${k == null ? 'none' : kcalClass(k)}" title="${ddmm(ds)}"><i style="height:${k ? Math.round(k / maxK * 100) : 4}%"></i><small>${parseDate(ds).getDate()}</small></div>`;
+    }).join('');
+    const tLine = p.target ? `<div class="bar-target" style="bottom:${Math.round(p.target / maxK * 100)}%"></div>` : '';
+    // замеры: старт → сейчас
+    const m0 = d.measures[0], m1 = d.measures[d.measures.length - 1];
+    const measHtml = m0 ? `<table class="ps-table"><tr><th></th><th>${ddmm(m0.date)}</th><th>${m1 !== m0 ? ddmm(m1.date) : ''}</th><th>${m1 !== m0 ? 'итого' : ''}</th></tr>` +
+      d.metrics.map(([k, name, u]) => m0[k] == null && m1[k] == null ? '' : `<tr><td>${esc(name)}, ${u}</td><td>${fmt(m0[k], 1)}</td><td>${m1 !== m0 ? fmt(m1[k], 1) : ''}</td><td class="${m1 !== m0 && m1[k] != null && m0[k] != null ? (m1[k] < m0[k] ? 'ok' : m1[k] > m0[k] ? 'warn' : '') : ''}">${m1 !== m0 && m1[k] != null && m0[k] != null ? sign(m1[k] - m0[k]) : ''}</td></tr>`).join('') + '</table>'
+      : '<div class="muted">Замеров пока нет</div>';
+    const rows = d.reports.length ? d.reports.map(r => {
+      const dt = parseDate(r.date);
+      return `<div class="ps-rep"><span class="dt">${WD[dt.getDay()]}, ${ddmm(r.date)}</span>
+        <span><b class="${kcalClass(r.kcal)}">${fmt(r.kcal)} ккал</b> · Б ${fmt(r.p)}${r.weight != null ? ' · ' + fmt(r.weight, 1) + ' кг' : ''}${r.steps != null ? ' · ' + fmt(r.steps) + ' шаг.' : ''}${r.hunger != null ? ' · голод ' + fmt(r.hunger) : ''}</span>
+        ${r.note ? `<span class="note">💬 ${esc(r.note)}</span>` : ''}</div>`;
+    }).join('') : '<div class="muted">Отчётов пока нет</div>';
+    $('#psBody').innerHTML = `
+      <div class="muted">${[p.group, p.goal, p.start ? 'старт ' + ddmm(p.start) : '', p.status !== 'активен' ? p.status : ''].filter(Boolean).map(esc).join(' · ')}</div>
+      <div class="res-cards" style="margin-top:12px">
+        <div class="res-card"><b>${p.target ? fmt(p.target) : '—'}</b><small>норма ккал в день${p.tP ? '<br>Б ' + esc(p.tP) + (p.tF ? ' · Ж ' + esc(p.tF) : '') + (p.tC ? ' · У ' + esc(p.tC) : '') : ''}</small></div>
+        <div class="res-card ${d.reported14 >= 12 ? 'good' : d.reported14 < 7 ? 'bad' : ''}"><b>${d.reported14} из 14</b><small>дней с отчётом за 2 недели</small></div>
+        <div class="res-card ${w0 && w1 && w1[1] < w0[1] ? 'good' : ''}"><b>${w1 ? fmt(w1[1], 1) + ' кг' : '—'}</b><small>${w0 && w1 && w0 !== w1 ? 'вес · ' + sign(w1[1] - w0[1]) + ' кг с ' + ddmm(w0[0]) : 'вес'}</small></div>
+        <div class="res-card"><b class="small">${esc(p.menu || 'нет')}</b><small>меню на эту неделю${p.menuAuto ? ' (по калориям)' : ' (назначено)'}</small></div>
+      </div>
+      <h3 class="ps-h">Калории за 14 дней</h3>
+      <div class="bars">${tLine}${bars}</div>
+      <div class="muted bars-legend"><span class="dot ok"></span>в норме <span class="dot bad"></span>не по норме <span class="dot none"></span>нет отчёта${p.target ? ' · линия — норма' : ''}</div>
+      <h3 class="ps-h">По неделям</h3>
+      ${weekLine(d.week, 'Эта неделя')}${weekLine(d.lastWeek, 'Прошлая неделя')}
+      <h3 class="ps-h">Замеры</h3>${measHtml}
+      <h3 class="ps-h">Отчёты по дням</h3>${rows}`;
+  }
+  $('#people').addEventListener('click', e => { const c = e.target.closest('[data-fio]'); if (c) { haptic(); openPerson(c.dataset.fio); } });
 
   /* ---------- Меню: список ---------- */
   function devClass(v) { return v.avgKcal && v.target && Math.abs(v.avgKcal / v.target - 1) > 0.1 ? 'bad' : 'ok'; }
@@ -591,7 +653,8 @@
     { tab: 'stats', el: '.tabs button[data-tab="stats"]', ic: '📊', t: 'Сводка', x: 'Здесь видно, как дела у ваших участников сегодня.' },
     { tab: 'stats', el: '#kpi', ic: '🔢', t: 'Четыре главные цифры', x: '<b>Прислали отчёт</b> — сколько человек уже прислали отчёт сегодня.<br><b>Давно не присылают</b> — кто молчит несколько дней.<br><b>Не по норме</b> — кто съел сегодня сильно больше или меньше, чем нужно.<br><b>Давно не было замеров</b> — кто давно не присылал замеры.<br><br>🔴 Красная цифра — значит, кому-то нужно написать.' },
     { tab: 'stats', el: '#statFilter', ic: '🔎', t: 'Кнопки-фильтры', x: 'Нажмите, и останутся только нужные люди.<br>Например, «Нет отчёта» — покажет только тех, кто не прислал отчёт.<br>«Все» — снова покажет всех.' },
-    { tab: 'stats', el: '#people .person', ic: '👤', t: 'Карточка человека', x: '<b>Справа</b> — сколько он съел сегодня и сколько ему можно. Зелёное — всё хорошо, красное — перебор или недобор. Серое «план» — отчёта ещё нет.<br><br><b>Полоска слева:</b><br>🔴 красная — давно нет отчёта;<br>🟠 оранжевая — не в норме по калориям или нет замера.<br><br>Внизу — какое меню у него на этой неделе.' },
+    { tab: 'stats', el: '#people .person', ic: '👤', t: 'Карточка человека', x: '<b>Справа</b> — сколько он съел сегодня и сколько ему можно. Зелёное — всё хорошо, красное — перебор или недобор. Серое «план» — отчёта ещё нет.<br><br><b>Полоска слева:</b><br>🔴 красная — давно нет отчёта;<br>🟠 оранжевая — не в норме по калориям или нет замера.<br><br>Ниже — как он ел за неделю и какое у него меню.' },
+    { tab: 'stats', el: '#people .person', ic: '📈', t: 'Вся статистика человека', x: '<b>Нажмите на карточку</b> — откроется всё про человека:<br>• его норма и вес (сколько сбросил или набрал);<br>• калории за 14 дней столбиками: зелёные — в норме, красные — нет, серые — нет отчёта;<br>• средние за эту и прошлую неделю;<br>• замеры: первый и последний, и разница;<br>• все отчёты по дням с комментариями.' },
     { tab: 'menu', el: '.tabs button[data-tab="menu"]', ic: '📋', t: 'Меню', x: 'Здесь все меню. Их можно смотреть и менять.' },
     { tab: 'menu', el: '#menuList .m-item', ic: '🗂', t: 'Какие бывают меню', x: '<b>«Основное»</b> — меню, которое работает всегда, каждую неделю.<br><b>«Неделя 24.11»</b> — меню только на одну неделю. Пока эта неделя идёт, оно главнее основного.<br><br>Процент справа — насколько меню отличается от своих калорий. Красный — сильно отличается, стоит поправить.<br><br>👉 Нажмите на меню, чтобы открыть его.' },
     { tab: 'menu', ic: '✏️', t: 'Как поменять продукт', x: 'Внутри меню сверху дни: Пн, Вт, Ср…<br><br>1. Выберите день.<br>2. Нажмите на продукт.<br>3. Поменяйте его на другой, измените граммы или удалите.<br>4. Нажмите «Сохранить».<br><br>Чтобы добавить продукт — нажмите «+ добавить ещё» под нужным приёмом пищи. Калории посчитаются сами.' },
