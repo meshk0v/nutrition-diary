@@ -477,24 +477,22 @@
       <div class="stats7">${METRIC_KEYS().map(([k, n]) => {
         const dd = delta(k);
         return `<div><b>${fmt(last[k], 1)}</b><small>${n.toLowerCase()}${dd != null && dd !== 0 ? ` <span class="${dd < 0 ? 'down' : 'up'}">${dd > 0 ? '+' : ''}${fmt(dd, 1)}</span>` : ''}</small></div>`;
-      }).join('')}</div>` : '<h2>Замеров пока нет</h2><div class="muted" style="margin-top:4px">Замеры — натощак, раз в 4 недели.</div>';
-    // окно замеров: раз в период, на 27-й день (настройки — в админке)
+      }).join('')}</div>` : '<h2>Замеров пока нет</h2><div class="muted" style="margin-top:4px">Раз в неделю, по воскресеньям утром, натощак.</div>';
+    // фото замеров — только в окне периода (27-й день); цифры — всегда
     const mw = state.measureWindow;
     let gate = $('#measureGate');
     const formCard = $('#measureForm').closest('.card');
     if (!gate) { gate = document.createElement('div'); gate.id = 'measureGate'; gate.className = 'card'; formCard.parentNode.insertBefore(gate, formCard); }
+    const photoClosed = !!(mw && !mw.free && !mw.open);
+    const dm = d => `${parseDate(d).getDate()} ${MONTHS[parseDate(d).getMonth()]}`;
     if (mw && !mw.free) {
-      const dm = d => `${parseDate(d).getDate()} ${MONTHS[parseDate(d).getMonth()]}`;
-      if (mw.open) {
-        gate.innerHTML = mw.done
-          ? `<h2>✅ Замеры за этот период сданы</h2><div class="muted" style="margin-top:4px">Если ошиблись — исправьте ниже, сегодняшний замер заменится.</div>`
-          : `<h2>📏 Сегодня день замеров!</h2><div class="muted" style="margin-top:4px">Пройдите замеры натощак и отправьте фото — форма ниже. Открыто до ${dm(mw.closesOn)} включительно.</div>`;
-        gate.classList.remove('hidden'); formCard.classList.remove('hidden');
-      } else {
-        gate.innerHTML = `<h2>📏 Замеры — раз в 4 недели</h2><div class="muted" style="margin-top:4px">Форма откроется на ${mw.day}-й день периода — <b>${dm(mw.nextOn)}</b>. В этот день придёт напоминание.</div>`;
-        gate.classList.remove('hidden'); formCard.classList.add('hidden');
-      }
-    } else { gate.classList.add('hidden'); formCard.classList.remove('hidden'); }
+      gate.innerHTML = mw.open
+        ? (mw.done ? `<h2>✅ Фото замеров за этот период загружены</h2>` : `<h2>📸 Сегодня можно загрузить фото замеров</h2><div class="muted" style="margin-top:4px">Откройте форму ниже и добавьте 4 фото. Открыто до ${dm(mw.closesOn)} включительно.</div>`)
+        : `<h2>📸 Фото замеров — раз в 4 недели</h2><div class="muted" style="margin-top:4px">Загрузка фото откроется на ${mw.day}-й день периода — <b>${dm(mw.nextOn)}</b>. Цифры замеров можно вносить каждую неделю, как обычно.</div>`;
+      gate.classList.remove('hidden');
+    } else gate.classList.add('hidden');
+    const ph = $('#mPhotos') && $('#mPhotos').closest('.full');
+    if (ph) ph.classList.toggle('hidden', photoClosed);
     // форма — один раз (чтобы не сбрасывать введённое)
     if (!$('#measureForm').dataset.ready) {
       $('#measureForm').innerHTML = METRIC_KEYS().map(([k, n, u]) => `<label>${n}, ${u}<input name="${k}" inputmode="decimal"${k === 'weight' ? ' required' : ''}></label>`).join('') +
