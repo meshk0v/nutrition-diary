@@ -604,7 +604,7 @@
       ? (yMissing ? `<button class="late" id="goYesterday">⚠️ <span>За вчера, <b>${yLabel}</b>, отчёт не сдан</span><span class="go">Заполнить →</span></button>` : '') +
         `<div class="rep-head"><div class="t">Отчёт за <span>сегодня</span>, ${WD[dDate.getDay()]} ${label}</div><div class="s">Отправьте до 0:00</div></div>`
       : `<div class="rep-head"><div class="t">Отчёт за <span>вчера</span>, ${WD[dDate.getDay()]} ${label}</div>
-          <div class="s">Опоздавший отчёт запишется на ${label}</div><button class="back" id="goToday">← к отчёту за сегодня</button></div>`;
+          <div class="s">Опоздавший отчёт запишется на ${label}</div>${state.reportOpen === false ? '' : '<button class="back" id="goToday">← к отчёту за сегодня</button>'}</div>`;
     $('#repStatus').innerHTML = r
       ? `<div class="rep-status ok">✓ Отчёт за ${label} отправлен${r.sentAt ? ' в ' + esc(r.sentAt) : ''}. Можно исправить и отправить заново.</div>`
       : '';
