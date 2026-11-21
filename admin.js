@@ -220,7 +220,7 @@
       <div class="muted">${[p.group, p.goal, p.start ? 'старт ' + ddmm(p.start) : '', p.status !== 'активен' ? p.status : ''].filter(Boolean).map(esc).join(' · ')}</div>
       <div class="res-cards" style="margin-top:12px">
         <div class="res-card"><b>${p.target ? fmt(p.target) : '—'}</b><small>норма ккал в день${p.tP ? '<br>Б ' + esc(p.tP) + (p.tF ? ' · Ж ' + esc(p.tF) : '') + (p.tC ? ' · У ' + esc(p.tC) : '') : ''}</small></div>
-        <div class="res-card ${d.reported14 >= 12 ? 'good' : d.reported14 < 7 ? 'bad' : ''}"><b>${d.reported14} из 14</b><small>дней с отчётом за 2 недели</small></div>
+        <div class="res-card ${d.reported14 / (d.reportedOf || 14) >= 0.85 ? 'good' : d.reported14 / (d.reportedOf || 14) < 0.5 ? 'bad' : ''}"><b>${d.reported14} из ${d.reportedOf || 14}</b><small>${(d.reportedOf || 14) < 14 ? 'дней с отчётом с начала участия' : 'дней с отчётом за 2 недели'}</small></div>
         <div class="res-card ${w0 && w1 && w1[1] < w0[1] ? 'good' : ''}"><b>${w1 ? fmt(w1[1], 1) + ' кг' : '—'}</b><small>${w0 && w1 && w0 !== w1 ? 'вес · ' + sign(w1[1] - w0[1]) + ' кг с ' + ddmm(w0[0]) : 'вес'}</small></div>
         <div class="res-card"><b class="small">${esc(p.menu || 'нет')}</b><small>меню на эту неделю${p.menuAuto ? ' (по калориям)' : ' (назначено)'}</small></div>
       </div>
