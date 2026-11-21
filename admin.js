@@ -500,7 +500,7 @@
     if (!SET) return;
     let html = '';
     if (setPart === 'settings') {
-      html += `<div class="hint-line">⏰ Время — ${SET.tz === 'Europe/Moscow' ? 'по Москве' : 'по поясу ' + esc(SET.tz)}. Нажмите на строку, чтобы изменить.</div>`;
+      html += `<div class="hint-line">⏰ Время — ${({ 'Europe/Moscow': 'по Москве', 'Asia/Irkutsk': 'по Иркутску (МСК+5, как на Бали)', 'Asia/Makassar': 'по Бали' })[SET.tz] || 'по поясу ' + esc(SET.tz)}. Нажмите на строку, чтобы изменить.</div>`;
       const groups = [];
       SET.settings.forEach(s => { let g = groups.find(x => x.name === s.group); if (!g) { g = { name: s.group, items: [] }; groups.push(g); } g.items.push(s); });
       html += groups.map(g => `<div class="m-group">${esc(g.name)}</div><div class="set-card">` +
