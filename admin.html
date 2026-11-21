@@ -7,10 +7,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="app.css?v=1795258126">
-  <link rel="stylesheet" href="admin.css?v=1795258126">
-  <script src="https://telegram.org/js/telegram-web-app.js?v=1795258126"></script>
-  <script src="config.js?v=1795258126"></script>
+  <link rel="stylesheet" href="app.css?v=1795258248">
+  <link rel="stylesheet" href="admin.css?v=1795258248">
+  <script src="https://telegram.org/js/telegram-web-app.js?v=1795258248"></script>
+  <script src="config.js?v=1795258248"></script>
 </head>
 <body class="booting">
   <div class="boot" id="boot"><div class="spin"></div></div>
@@ -123,7 +123,11 @@
         <div class="q-title">Новая неделя меню</div>
         <button class="close" data-close>✕</button>
       </div>
-      <div class="muted">Копируется последняя неделя каждого калоража (или основное меню). Участники получат её сами, если им не назначено другое.</div>
+      <div class="seg" id="wkMode">
+        <button data-m="copy" class="on">Копия прошлой</button>
+        <button data-m="empty">Пустое — заполню сам</button>
+      </div>
+      <div class="muted" id="wkHint"></div>
       <label class="f-lbl">Неделя</label>
       <select class="f-in" id="wkWeek"></select>
       <label class="f-lbl">Что копировать</label>
@@ -207,6 +211,6 @@
   </div>
 
   <div class="toast hidden" id="toast"></div>
-  <script src="admin.js?v=1795258126"></script>
+  <script src="admin.js?v=1795258248"></script>
 </body>
 </html>

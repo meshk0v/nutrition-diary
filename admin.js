@@ -333,17 +333,29 @@
     $(sel).value = S.nextMonday;
   }
 
-  /* ---------- Новая неделя ---------- */
+  /* ---------- Новая неделя: копия или пустое меню ---------- */
+  let wkMode = 'copy';
+  function renderWeekMode() {
+    $$('#wkMode button').forEach(b => b.classList.toggle('on', b.dataset.m === wkMode));
+    const tiers = S.tiers.map(t => `<option value="${t}">${wkMode === 'copy' ? 'Только ' : ''}${t} ккал</option>`).join('');
+    $('#wkTier').innerHTML = wkMode === 'copy' ? `<option value="">Все калоражи (${S.tiers.join(', ')})</option>` + tiers : tiers;
+    $('#wkHint').textContent = wkMode === 'copy'
+      ? 'Возьмём меню прошлой недели (или основное) и скопируем. Потом поменяете то, что нужно.'
+      : 'Создадим пустое меню на неделю — и вы сами добавите продукты по дням. Пока оно пустое, участники получают основное меню.';
+    $('#wkGo').textContent = wkMode === 'copy' ? 'Создать копию' : 'Создать и заполнить';
+    $('#wkMsg').textContent = '';
+  }
+  $('#wkMode').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; wkMode = b.dataset.m; haptic(); renderWeekMode(); });
   $('#newWeekBtn').addEventListener('click', () => {
     weekOptions('#wkWeek', 0);
-    $('#wkTier').innerHTML = `<option value="">Все калоражи (${S.tiers.join(', ')})</option>` + S.tiers.map(t => `<option value="${t}">Только ${t} ккал</option>`).join('');
-    $('#wkMsg').textContent = '';
+    renderWeekMode();
     openSheet('#weekSheet');
   });
   $('#wkGo').addEventListener('click', async e => {
-    const r = await busy(e.currentTarget, 'Создаю…', () => api('adm_new_week', { date: $('#wkWeek').value, tier: $('#wkTier').value }));
+    const r = await busy(e.currentTarget, 'Создаю…', () => api('adm_new_week', { date: $('#wkWeek').value, tier: $('#wkTier').value, mode: wkMode }));
     if (!r) return;
     S.variants = r.variants; renderMenuList(); haptic('ok');
+    if (r.empty) { closeSheets(); toast('Меню создано — добавляйте продукты'); openEditor(r.created[0]); return; }
     $('#wkMsg').innerHTML = (r.created.length ? '✅ Создано: ' + r.created.map(esc).join(', ') : 'Ничего не создано') +
       (r.skipped.length ? '<br>Уже были: ' + r.skipped.map(esc).join(', ') : '');
   });
@@ -468,7 +480,7 @@
     { tab: 'menu', el: '.tabs button[data-tab="menu"]', ic: '📋', t: 'Меню', x: 'Здесь все меню. Их можно смотреть и менять.' },
     { tab: 'menu', el: '#menuList .m-item', ic: '🗂', t: 'Какие бывают меню', x: '<b>«Основное»</b> — меню, которое работает всегда, каждую неделю.<br><b>«Неделя 24.11»</b> — меню только на одну неделю. Пока эта неделя идёт, оно главнее основного.<br><br>Процент справа — насколько меню отличается от своих калорий. Красный — сильно отличается, стоит поправить.<br><br>👉 Нажмите на меню, чтобы открыть его.' },
     { tab: 'menu', ic: '✏️', t: 'Как поменять продукт', x: 'Внутри меню сверху дни: Пн, Вт, Ср…<br><br>1. Выберите день.<br>2. Нажмите на продукт.<br>3. Поменяйте его на другой, измените граммы или удалите.<br>4. Нажмите «Сохранить».<br><br>Чтобы добавить продукт — нажмите «+ добавить» под нужным приёмом пищи. Калории посчитаются сами.' },
-    { tab: 'menu', el: '#newWeekBtn', ic: '➕', t: 'Новая неделя', x: 'Делает копию меню на следующую неделю.<br>Потом можно поменять в ней пару продуктов — и участники сами получат новое меню.' },
+    { tab: 'menu', el: '#newWeekBtn', ic: '➕', t: 'Новая неделя', x: 'Два способа:<br><b>Копия прошлой</b> — повторит прошлое меню, вы поменяете пару продуктов.<br><b>Пустое</b> — чистое меню, и вы сами добавите продукты по дням.<br><br>Участники получат новое меню сами.' },
     { tab: 'menu', el: '#aiBtn', ic: '🤖', t: 'Меню от ИИ', x: 'ИИ (например, ChatGPT) может составить меню за вас:<br><br>1. Напишите калории и пожелания.<br>2. Нажмите «Скопировать промпт» — это готовое задание для ИИ.<br>3. Вставьте его в ChatGPT и отправьте.<br>4. Скопируйте ответ ChatGPT, вставьте сюда и нажмите «Загрузить».<br><br>Если ИИ ошибся — ничего не сломается. Вы увидите, что не так, и сможете отправить это обратно в ИИ.' },
     { tab: 'assign', el: '.tabs button[data-tab="assign"]', ic: '🗓', t: 'Назначения', x: 'Обычно ничего делать не нужно: каждый сам получает меню под свои калории.<br><br>Сюда заходите, только если кому-то нужно <b>особое</b> меню.' },
     { tab: 'assign', el: '#tab-assign .card', ic: '🎯', t: 'Как дать особое меню', x: '1. Выберите неделю.<br>2. Выберите, кому: всем, группе или одному человеку.<br>3. Выберите меню.<br>4. Нажмите «Назначить».<br><br>Если человеку и группе назначено разное — человек получит своё, личное.' },
