@@ -7,6 +7,8 @@
   const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 
   let S = null;              // ответ adm_init
+  const UNIT_WORD = { 'г': 'грамм', 'шт': 'штук', 'порц': 'порций' };
+  const DAY_WORD = { 'Пн': 'понедельник', 'Вт': 'вторник', 'Ср': 'среда', 'Чт': 'четверг', 'Пт': 'пятница', 'Сб': 'суббота', 'Вс': 'воскресенье' };
   let items = [];            // [{name, type, kcal, p, f, c, portion}]
   let ed = null;             // редактор: {menu, day}
   let statFilter = 'all';
@@ -141,10 +143,10 @@
   function renderStats() {
     const st = S.stats;
     $('#kpi').innerHTML = [
-      [st.reportedToday + ' / ' + st.active, 'сдали отчёт сегодня', st.reportedToday === st.active ? 'good' : ''],
-      [st.late, 'без отчёта больше ' + st.lateDays + ' дн.', st.late ? 'bad' : 'good'],
-      [st.outOfCorridor, 'вне коридора ±' + st.corridor + '% сегодня', st.outOfCorridor ? 'bad' : 'good'],
-      [st.measureLate, 'просрочен замер', st.measureLate ? 'bad' : 'good']
+      [st.reportedToday + ' из ' + st.active, 'прислали отчёт сегодня', st.reportedToday === st.active ? 'good' : ''],
+      [st.late, 'давно не присылают отчёт (больше ' + st.lateDays + ' дн.)', st.late ? 'bad' : 'good'],
+      [st.outOfCorridor, 'съели сегодня не по норме', st.outOfCorridor ? 'bad' : 'good'],
+      [st.measureLate, 'давно не было замеров', st.measureLate ? 'bad' : 'good']
     ].map(([v, t, c]) => `<div class="res-card ${c}"><b>${v}</b><small>${t}</small></div>`).join('');
     const f = { all: () => true, late: p => p.late, out: p => p.out, meas: p => p.measureLate }[statFilter];
     const list = st.people.filter(f);
@@ -152,12 +154,12 @@
       const kc = p.kcal == null ? `<span class="p-plan">${p.target ? 'план ' + fmt(p.target) + ' ккал' : ''}</span>`
         : `<span class="p-kcal ${p.out ? 'bad' : 'ok'}">${fmt(p.kcal)}${p.target ? ' / ' + fmt(p.target) : ''} ккал${p.dev != null ? ' · ' + (p.dev > 0 ? '+' : '') + p.dev + '%' : ''}</span>`;
       const rep = p.lastReport == null ? '<span class="bad">отчётов нет</span>'
-        : p.noReport === 0 ? 'отчёт сегодня' : `<span class="${p.late ? 'bad' : ''}">отчёт ${p.noReport} дн. назад</span>`;
-      const meas = p.lastMeasure ? `<span class="${p.measureLate ? 'warn' : ''}">замер ${ddmm(p.lastMeasure)}</span>` : '<span class="warn">замеров нет</span>';
+        : p.noReport === 0 ? 'отчёт сегодня' : `<span class="${p.late ? 'bad' : ''}">последний отчёт ${p.noReport === 1 ? 'вчера' : p.noReport + ' дн. назад'}</span>`;
+      const meas = p.lastMeasure ? `<span class="${p.measureLate ? 'warn' : ''}">замеры ${ddmm(p.lastMeasure)}</span>` : '<span class="warn">замеров нет</span>';
       return `<div class="person ${p.late ? 'late' : p.out || p.measureLate ? 'warn' : ''}">
         <div class="p-top"><span class="p-name">${esc(p.fio)}</span>${kc}</div>
         <div class="p-meta">${rep}<span>·</span>${meas}${p.weight != null ? '<span>·</span><span>' + fmt(p.weight, 1) + ' кг</span>' : ''}${p.group ? '<span>·</span><span>' + esc(p.group) + '</span>' : ''}</div>
-        <div class="p-meta">📋 ${esc(p.menu || 'меню нет')}</div>
+        <div class="p-meta">🍽 Меню на эту неделю: ${esc(p.menu || 'нет')}</div>
       </div>`;
     }).join('') : `<div class="empty">${st.people.length ? 'Таких участников нет 👍' : 'Активных участников пока нет'}</div>`;
   }
@@ -171,14 +173,14 @@
   /* ---------- Меню: список ---------- */
   function devClass(v) { return v.avgKcal && v.target && Math.abs(v.avgKcal / v.target - 1) > 0.1 ? 'bad' : 'ok'; }
   function renderMenuList() {
-    const groups = [['base', 'Основные (действуют каждую неделю)'], ['week', 'На конкретную неделю'], ['other', 'Другие']];
+    const groups = [['base', 'Обычные меню — работают всегда'], ['week', 'Меню на одну неделю'], ['other', 'Другие']];
     const html = groups.map(([k, title]) => {
       const vs = S.variants.filter(v => v.kind === k);
       if (!vs.length) return '';
       return `<div class="m-group">${title}</div>` + vs.map(v => `
         <button class="m-item" data-code="${esc(v.code)}">
-          <span><b>${esc(v.code)}</b><small>${v.days} дн.${v.avgKcal ? ' · в среднем ' + fmt(v.avgKcal) + ' ккал' : ' · пусто'}</small></span>
-          ${v.avgKcal && v.target ? `<span class="dev ${devClass(v)}">${(v.avgKcal >= v.target ? '+' : '') + Math.round((v.avgKcal / v.target - 1) * 100)}%</span>` : ''}
+          <span><b>${esc(v.code)}</b><small>${v.avgKcal ? 'в среднем ' + fmt(v.avgKcal) + ' ккал в день' : 'пока пустое — нажмите, чтобы заполнить'}${v.days && v.days < 7 ? ' · заполнено дней: ' + v.days + ' из 7' : ''}</small></span>
+          ${v.avgKcal && v.target ? `<span class="dev ${devClass(v)}">${devClass(v) === 'ok' ? '✓ норма' : (v.avgKcal > v.target ? 'много' : 'мало') + ' на ' + Math.abs(Math.round((v.avgKcal / v.target - 1) * 100)) + '%'}</span>` : ''}
         </button>`).join('');
     }).join('');
     $('#menuList').innerHTML = html || '<div class="empty">Меню пока нет</div>';
@@ -202,26 +204,26 @@
   }
   function renderEditor() {
     const m = ed.menu, D = S.days;
-    const kind = { base: 'основное — действует каждую неделю', week: 'на конкретную неделю', other: '' }[m.kind];
+    const kind = { base: 'обычное — работает каждую неделю', week: 'только на одну неделю', other: '' }[m.kind];
     $('#edHead').innerHTML = `<div class="title">${esc(m.code)}</div><div class="muted">${m.target ? fmt(m.target) + ' ккал в день' : ''}${kind ? ' · ' + kind : ''}</div>`;
     $('#edDays').innerHTML = D.map(d => {
       const n = m.rows.filter(r => r.day === d).length;
-      return `<button data-d="${d}" class="${d === ed.day ? 'on' : ''}">${d}<small>${n ? n + ' поз.' : '—'}</small></button>`;
+      return `<button data-d="${d}" class="${d === ed.day ? 'on' : ''}">${d}<small>${n ? '✓' : 'пусто'}</small></button>`;
     }).join('');
     const rows = m.rows.filter(r => r.day === ed.day);
     const total = rows.reduce((a, r) => ({ kcal: a.kcal + (r.kcal || 0), p: a.p + (r.p || 0), f: a.f + (r.f || 0), c: a.c + (r.c || 0) }), { kcal: 0, p: 0, f: 0, c: 0 });
     const dev = m.target && total.kcal ? Math.round((total.kcal / m.target - 1) * 100) : null;
     const groups = [];
     rows.forEach(r => { let g = groups.find(x => x.meal === r.meal); if (!g) { g = { meal: r.meal, rows: [], kcal: 0 }; groups.push(g); } g.rows.push(r); g.kcal += r.kcal || 0; });
-    $('#edMeals').innerHTML = `<div class="day-total ${dev != null && Math.abs(dev) > 10 ? 'bad' : ''}"><span>Итого за день</span><span>${fmt(total.kcal)} ккал${dev != null ? ' (' + (dev > 0 ? '+' : '') + dev + '%)' : ''} · Б ${fmt(total.p)} Ж ${fmt(total.f)} У ${fmt(total.c)}</span></div>` +
+    $('#edMeals').innerHTML = `<div class="day-total ${dev != null && Math.abs(dev) > 10 ? 'bad' : ''}"><span>За весь день</span><span>${fmt(total.kcal)}${m.target ? ' из ' + fmt(m.target) : ''} ккал${dev != null && Math.abs(dev) > 10 ? (dev > 0 ? ' — многовато' : ' — маловато') : ''}</span></div>` +
       (groups.length ? groups.map(g => `
         <div class="ed-meal">
           <div class="meal-head"><span class="when">${esc(g.meal)}</span><span class="meal-kcal">${fmt(g.kcal)} ккал</span></div>
           ${g.rows.map(r => `<button class="ed-row" data-row="${r.row}">
-            <span><span class="nm">${esc(r.item)}</span><br><span class="am">${fmt(r.qty, 2)} ${esc(r.unit)}</span></span>
-            <span class="kc">${fmt(r.kcal)} ккал</span></button>`).join('')}
-          <button class="ed-add" data-meal="${esc(g.meal)}">＋ добавить в «${esc(g.meal)}»</button>
-        </div>`).join('') : '<div class="empty">В этот день пусто — добавьте продукт</div>');
+            <span><span class="nm">${esc(r.item)}</span><br><span class="am">${fmt(r.qty, 2)} ${esc(UNIT_WORD[r.unit] || r.unit)}</span></span>
+            <span class="kc">${fmt(r.kcal)} ккал · изменить</span></button>`).join('')}
+          <button class="ed-add" data-meal="${esc(g.meal)}">＋ добавить ещё в «${esc(g.meal)}»</button>
+        </div>`).join('') : '<div class="empty">В этот день пока ничего нет.<br>Нажмите «Добавить продукт» ниже 👇</div>');
     $('#edDelete').classList.toggle('hidden', m.kind === 'base');
   }
   $('#edDays').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; ed.day = b.dataset.d; haptic(); renderEditor(); });
@@ -243,7 +245,7 @@
   /* ---------- Строка меню ---------- */
   function openRow(mode, r, meal) {
     row = { mode, r, meal: r ? r.meal : (meal || ''), unit: r ? r.unit : 'г' };
-    $('#rowTitle').textContent = mode === 'edit' ? 'Изменить · ' + ed.day : 'Добавить · ' + ed.day;
+    $('#rowTitle').textContent = (mode === 'edit' ? 'Изменить продукт · ' : 'Новый продукт · ') + (DAY_WORD[ed.day] || ed.day);
     $('#rowItem').value = r ? r.item : '';
     $('#rowQty').value = r ? String(r.qty).replace('.', ',') : '';
     $('#rowSuggest').innerHTML = '';
@@ -256,17 +258,17 @@
     const meals = S.meals.slice();
     if (row.meal && meals.indexOf(row.meal) < 0) meals.push(row.meal);
     $('#rowMeals').innerHTML = meals.map(m => `<button data-v="${esc(m)}" class="${m === row.meal ? 'on' : ''}">${esc(m)}</button>`).join('');
-    $('#rowUnits').innerHTML = S.units.map(u => `<button data-v="${u}" class="${u === row.unit ? 'on' : ''}">${u}</button>`).join('');
+    $('#rowUnits').innerHTML = S.units.map(u => `<button data-v="${u}" class="${u === row.unit ? 'on' : ''}">${UNIT_WORD[u] || u}</button>`).join('');
   }
   $('#rowMeals').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; row.meal = b.dataset.v; renderRowChips(); });
   $('#rowUnits').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; row.unit = b.dataset.v; renderRowChips(); rowCalc(); });
   const findItem = name => items.find(i => norm(i.name) === norm(name.trim()));
   function rowCalc() {
     const it = findItem($('#rowItem').value), q = num($('#rowQty').value);
-    $('#rowInfo').textContent = it ? (it.type === 'r' ? 'Рецепт' : 'Продукт') + ' · ' + fmt(it.kcal) + ' ккал на 100 г' + (it.portion ? ' · 1 ' + (it.type === 'r' ? 'порц' : 'шт') + ' = ' + fmt(it.portion) + ' г' : '') : '';
+    $('#rowInfo').textContent = it ? '✓ ' + (it.type === 'r' ? 'Блюдо (рецепт)' : 'Продукт') + ' · ' + fmt(it.kcal) + ' ккал в 100 г' + (it.portion ? ' · 1 ' + (it.type === 'r' ? 'порция' : 'штука') + ' = ' + fmt(it.portion) + ' г' : '') : '';
     if (!it || q == null) { $('#rowCalc').textContent = ''; return; }
     const grams = row.unit === 'г' ? q : q * (it.portion || 0);
-    $('#rowCalc').textContent = grams ? `≈ ${fmt(grams)} г · ${fmt(it.kcal * grams / 100)} ккал · Б ${fmt(it.p * grams / 100, 1)} Ж ${fmt(it.f * grams / 100, 1)} У ${fmt(it.c * grams / 100, 1)}`
+    $('#rowCalc').textContent = grams ? `Это ${fmt(it.kcal * grams / 100)} ккал (белки ${fmt(it.p * grams / 100, 1)}, жиры ${fmt(it.f * grams / 100, 1)}, углеводы ${fmt(it.c * grams / 100, 1)})`
       : `У продукта не указан вес 1 ${row.unit === 'шт' ? 'шт' : 'порции'} — укажите граммы`;
   }
   $('#rowItem').addEventListener('input', () => {
@@ -286,9 +288,9 @@
   $('#rowQty').addEventListener('input', rowCalc);
   $('#rowSave').addEventListener('click', async e => {
     const it = findItem($('#rowItem').value);
-    if (!it) return toast('Выберите продукт из списка');
-    if (!row.meal) return toast('Выберите приём пищи');
-    if (num($('#rowQty').value) == null) return toast('Укажите количество');
+    if (!it) return toast('Сначала выберите, что едим: напишите пару букв и нажмите на продукт в списке');
+    if (!row.meal) return toast('Выберите, когда едим: завтрак, обед…');
+    if (num($('#rowQty').value) == null) return toast('Напишите, сколько: например, 150');
     const body = { meal: row.meal, item: it.name, qty: num($('#rowQty').value), unit: row.unit };
     const r = await busy(e.currentTarget, 'Сохраняю…', () => row.mode === 'edit'
       ? api('adm_row_save', Object.assign(body, { row: row.r.row, expect: { variant: ed.menu.code, day: row.r.day, item: row.r.item } }))
@@ -378,7 +380,7 @@
   $('#aiPrompt').addEventListener('click', async e => {
     const r = await busy(e.currentTarget, 'Готовлю…', () => api('adm_ai_prompt', { tier: $('#aiTier').value, protein: $('#aiProt').value, week: $('#aiWeek').value, wishes: $('#aiWish').value }));
     if (!r) return;
-    if (await copyText(r.text)) { toast('Промпт скопирован — вставьте его в ИИ'); haptic('ok'); }
+    if (await copyText(r.text)) { toast('Скопировано! Теперь откройте ChatGPT и вставьте'); haptic('ok'); }
     else { $('#aiText').value = r.text; toast('Не удалось скопировать — текст в поле ниже, скопируйте вручную'); }
   });
   $('#aiImport').addEventListener('click', async e => {
@@ -474,16 +476,16 @@
   const TOUR = [
     { ic: '👋', t: 'Привет! Это админка', x: 'Здесь вы управляете группой прямо с телефона.<br>Всё, что вы тут меняете, сразу попадает в Google Таблицу.<br><br>Сейчас покажу, где что. Нажимайте «Далее».' },
     { tab: 'stats', el: '.tabs button[data-tab="stats"]', ic: '📊', t: 'Сводка', x: 'Здесь видно, как дела у ваших участников сегодня.' },
-    { tab: 'stats', el: '#kpi', ic: '🔢', t: 'Четыре главные цифры', x: '<b>Сдали отчёт</b> — сколько человек сегодня прислали отчёт.<br><b>Без отчёта</b> — кто давно молчит.<br><b>Вне коридора</b> — кто съел сегодня сильно больше или меньше нормы.<br><b>Просрочен замер</b> — кто давно не присылал замеры.<br><br>🔴 Красная цифра — значит, кому-то нужно написать.' },
-    { tab: 'stats', el: '#statFilter', ic: '🔎', t: 'Кнопки-фильтры', x: 'Нажмите, и останутся только нужные люди.<br>Например, «Без отчёта» — покажет только тех, кто не прислал отчёт.<br>«Все» — снова покажет всех.' },
+    { tab: 'stats', el: '#kpi', ic: '🔢', t: 'Четыре главные цифры', x: '<b>Прислали отчёт</b> — сколько человек уже прислали отчёт сегодня.<br><b>Давно не присылают</b> — кто молчит несколько дней.<br><b>Не по норме</b> — кто съел сегодня сильно больше или меньше, чем нужно.<br><b>Давно не было замеров</b> — кто давно не присылал замеры.<br><br>🔴 Красная цифра — значит, кому-то нужно написать.' },
+    { tab: 'stats', el: '#statFilter', ic: '🔎', t: 'Кнопки-фильтры', x: 'Нажмите, и останутся только нужные люди.<br>Например, «Нет отчёта» — покажет только тех, кто не прислал отчёт.<br>«Все» — снова покажет всех.' },
     { tab: 'stats', el: '#people .person', ic: '👤', t: 'Карточка человека', x: '<b>Справа</b> — сколько он съел сегодня и сколько ему можно. Зелёное — всё хорошо, красное — перебор или недобор. Серое «план» — отчёта ещё нет.<br><br><b>Полоска слева:</b><br>🔴 красная — давно нет отчёта;<br>🟠 оранжевая — не в норме по калориям или нет замера.<br><br>Внизу — какое меню у него на этой неделе.' },
     { tab: 'menu', el: '.tabs button[data-tab="menu"]', ic: '📋', t: 'Меню', x: 'Здесь все меню. Их можно смотреть и менять.' },
     { tab: 'menu', el: '#menuList .m-item', ic: '🗂', t: 'Какие бывают меню', x: '<b>«Основное»</b> — меню, которое работает всегда, каждую неделю.<br><b>«Неделя 24.11»</b> — меню только на одну неделю. Пока эта неделя идёт, оно главнее основного.<br><br>Процент справа — насколько меню отличается от своих калорий. Красный — сильно отличается, стоит поправить.<br><br>👉 Нажмите на меню, чтобы открыть его.' },
-    { tab: 'menu', ic: '✏️', t: 'Как поменять продукт', x: 'Внутри меню сверху дни: Пн, Вт, Ср…<br><br>1. Выберите день.<br>2. Нажмите на продукт.<br>3. Поменяйте его на другой, измените граммы или удалите.<br>4. Нажмите «Сохранить».<br><br>Чтобы добавить продукт — нажмите «+ добавить» под нужным приёмом пищи. Калории посчитаются сами.' },
+    { tab: 'menu', ic: '✏️', t: 'Как поменять продукт', x: 'Внутри меню сверху дни: Пн, Вт, Ср…<br><br>1. Выберите день.<br>2. Нажмите на продукт.<br>3. Поменяйте его на другой, измените граммы или удалите.<br>4. Нажмите «Сохранить».<br><br>Чтобы добавить продукт — нажмите «+ добавить ещё» под нужным приёмом пищи. Калории посчитаются сами.' },
     { tab: 'menu', el: '#newWeekBtn', ic: '➕', t: 'Новая неделя', x: 'Два способа:<br><b>Копия прошлой</b> — повторит прошлое меню, вы поменяете пару продуктов.<br><b>Пустое</b> — чистое меню, и вы сами добавите продукты по дням.<br><br>Участники получат новое меню сами.' },
-    { tab: 'menu', el: '#aiBtn', ic: '🤖', t: 'Меню от ИИ', x: 'ИИ (например, ChatGPT) может составить меню за вас:<br><br>1. Напишите калории и пожелания.<br>2. Нажмите «Скопировать промпт» — это готовое задание для ИИ.<br>3. Вставьте его в ChatGPT и отправьте.<br>4. Скопируйте ответ ChatGPT, вставьте сюда и нажмите «Загрузить».<br><br>Если ИИ ошибся — ничего не сломается. Вы увидите, что не так, и сможете отправить это обратно в ИИ.' },
+    { tab: 'menu', el: '#aiBtn', ic: '🤖', t: 'Меню от ИИ', x: 'ИИ (например, ChatGPT) может составить меню за вас:<br><br>1. Напишите калории и пожелания.<br>2. Нажмите «Скопировать задание для ChatGPT».<br>3. Вставьте его в ChatGPT и отправьте.<br>4. Скопируйте ответ ChatGPT, вставьте сюда и нажмите «Загрузить в меню».<br><br>Если ИИ ошибся — ничего не сломается. Вы увидите, что не так, и сможете отправить это обратно в ИИ.' },
     { tab: 'assign', el: '.tabs button[data-tab="assign"]', ic: '🗓', t: 'Назначения', x: 'Обычно ничего делать не нужно: каждый сам получает меню под свои калории.<br><br>Сюда заходите, только если кому-то нужно <b>особое</b> меню.' },
-    { tab: 'assign', el: '#tab-assign .card', ic: '🎯', t: 'Как дать особое меню', x: '1. Выберите неделю.<br>2. Выберите, кому: всем, группе или одному человеку.<br>3. Выберите меню.<br>4. Нажмите «Назначить».<br><br>Если человеку и группе назначено разное — человек получит своё, личное.' },
+    { tab: 'assign', el: '#tab-assign .card', ic: '🎯', t: 'Как дать особое меню', x: '1. Выберите неделю.<br>2. Выберите, кому: всем, группе или одному человеку.<br>3. Выберите меню.<br>4. Нажмите «Дать это меню».<br><br>Если человеку и группе назначено разное — человек получит своё, личное.' },
     { tab: 'assign', el: '#asList', ic: '✕', t: 'Убрать назначение', x: 'Здесь список всех особых меню.<br>Нажмите ✕ — и человек снова будет получать обычное меню под свои калории.' },
     { tab: 'products', el: '.tabs button[data-tab="products"]', ic: '🥦', t: 'Продукты', x: 'Здесь все продукты и сколько в них калорий, белков, жиров и углеводов на 100 грамм.<br>По ним считаются все меню.' },
     { tab: 'products', el: '.search-row', ic: '🔍', t: 'Найти или добавить продукт', x: '<b>Найти:</b> начните писать название в поиске.<br><b>Исправить:</b> нажмите на продукт и поменяйте цифры.<br><b>Добавить:</b> нажмите «➕ Новый». Цифры берите с упаковки или из FatSecret.<br><br>Если продукт считают штуками (яйцо, яблоко) — напишите, сколько весит одна штука.' },
