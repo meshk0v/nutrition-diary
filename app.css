@@ -372,3 +372,7 @@ textarea.grow { resize: none; overflow-y: auto; line-height: 1.4; display: block
 .banner.stale .link { font-weight: 700; color: inherit; text-decoration: underline; padding: 0; }
 .choice.yn button { flex: 1 1 0; }
 .steps-fld > label:first-child { font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+
+/* Тренер, который ещё и участник: переход в админку */
+.top-right { display: flex; gap: 8px; align-items: center; }
+.admin-btn { padding: 6px 12px; border-radius: 15px; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 13px; }
