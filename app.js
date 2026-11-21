@@ -60,7 +60,7 @@
         body: JSON.stringify(Object.assign({ action, initData: inTelegram ? tg.initData : '', demo: !inTelegram }, data))
       });
       const json = await res.json();
-      if (json.error) throw Object.assign(new Error(json.message || json.error), { code: json.error, id: json.id, anketa: json.anketa, anketaSent: json.anketaSent });
+      if (json.error) throw Object.assign(new Error(json.message || json.error), { code: json.error, id: json.id, anketa: json.anketa, anketaSent: json.anketaSent, pending: json.pending });
       return json;
     } finally { /* индикатор загрузки убран — состояние видно по кнопкам («Отправляю…») */ }
   }
@@ -90,7 +90,7 @@
       if (!tourSeen()) setTimeout(startTour, 400); // первый запуск — короткое обучение
     } catch (e) {
       // Ошибки доступа (нет в группе, не удалось войти, участие завершено) — всегда показываем, кэш стираем
-      if (!state || ['not_registered', 'unpaid', 'admin', 'unauthorized', 'finished', 'no_demo', 'maintenance'].includes(e.code)) {
+      if (!state || ['not_registered', 'unpaid', 'expired', 'admin', 'unauthorized', 'finished', 'no_demo', 'maintenance'].includes(e.code)) {
         try { localStorage.removeItem(CACHE_KEY); } catch (err) {}
         showError(e);
       } else {
@@ -166,6 +166,18 @@
 
   function showError(e) {
     if (e.code === 'admin') { location.replace('admin.html'); return; }
+    if (e.code === 'expired') {
+      $('main').innerHTML = `<div class="error-box"><div class="big">🔒</div><h2>Доступ закрыт</h2><p class="muted">${esc(e.message).replace(/\n/g, '<br>')}</p>
+        <button class="btn primary full" id="paidBtn" ${e.pending ? 'disabled' : ''}>${e.pending ? '⏳ Ждём подтверждения тренера' : '✅ Я оплатил(а)'}</button></div>`;
+      $('.tabs').classList.add('hidden'); $('#sub').textContent = '';
+      const b = $('#paidBtn');
+      if (b) b.addEventListener('click', async () => {
+        b.disabled = true; b.textContent = 'Отправляю…';
+        try { await api('renew_paid'); b.textContent = '⏳ Ждём подтверждения тренера'; toast('Передал тренеру'); haptic('ok'); }
+        catch (err) { b.disabled = false; b.textContent = '✅ Я оплатил(а)'; toast(err.message); }
+      });
+      return;
+    }
     if (e.code === 'maintenance') return showMaintenance(e);
     if (e.code === 'not_registered' && e.anketa) return showAnketa(e);
     const msgs = {

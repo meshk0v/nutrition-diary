@@ -163,6 +163,7 @@
         <div class="p-meta">${rep}<span>·</span>${meas}${p.weight != null ? '<span>·</span><span>' + fmt(p.weight, 1) + ' кг</span>' : ''}${p.group ? '<span>·</span><span>' + esc(p.group) + '</span>' : ''}</div>
         <div class="p-meta">📅 За неделю: ${p.week ? 'в среднем ' + fmt(p.week.kcal) + ' ккал' + (p.week.dev != null ? ' (' + (p.week.dev > 0 ? '+' : '') + p.week.dev + '%)' : '') + ', отчётов ' + p.week.days : 'отчётов нет'}</div>
         <div class="p-meta">🍽 Меню на эту неделю: ${esc(p.menu || 'нет')}</div>
+        ${p.pay ? `<div class="p-meta">💳 ${p.pay.expired ? '<span class="bad">доступ закрыт — период закончился ' + ddmm(p.pay.until) + '</span>' : p.pay.pending ? '<span class="warn">оплата ждёт вашего подтверждения</span>' : '<span class="' + (p.pay.left <= 6 ? 'warn' : '') + '">оплачено до ' + ddmm(p.pay.until) + (p.pay.left <= 6 ? ' (осталось ' + p.pay.left + ' дн.)' : '') + '</span>'}</div>` : ''}
         <div class="p-more">Подробнее ›</div>
       </div>`;
     }).join('') : `<div class="empty">${st.people.length ? 'Таких участников нет 👍' : 'Активных участников пока нет'}</div>`;
