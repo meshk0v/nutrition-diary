@@ -102,7 +102,7 @@
       if (!tourSeen()) setTimeout(startTour, 400); // первый запуск — короткое обучение
     } catch (e) {
       // Ошибки доступа (нет в группе, не удалось войти, участие завершено) — всегда показываем, кэш стираем
-      if (!state || ['not_registered', 'unpaid', 'unauthorized', 'finished', 'no_demo', 'maintenance'].includes(e.code)) {
+      if (!state || ['not_registered', 'unpaid', 'admin', 'unauthorized', 'finished', 'no_demo', 'maintenance'].includes(e.code)) {
         try { localStorage.removeItem(CACHE_KEY); } catch (err) {}
         showError(e);
       } else {
@@ -177,6 +177,7 @@
   }
 
   function showError(e) {
+    if (e.code === 'admin') { location.replace('admin.html'); return; }
     if (e.code === 'maintenance') return showMaintenance(e);
     if (e.code === 'not_registered' && e.anketa) return showAnketa(e);
     const msgs = {

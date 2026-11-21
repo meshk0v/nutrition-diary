@@ -1,0 +1,94 @@
+/* Админка тренера: дополняет app.css (цвета, карточки, вкладки, нижние панели — оттуда) */
+.top .icon-btn { width: 38px; height: 38px; border-radius: 50%; background: var(--card); box-shadow: var(--shadow); font-size: 18px; color: var(--muted); }
+.top .icon-btn.busy { animation: spin 1s linear infinite; color: var(--accent); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.f-lbl { display: block; font-size: 13px; font-weight: 700; margin: 12px 0 6px; }
+.f-lbl .muted { font-weight: 500; font-size: 12px; }
+.f-in { width: 100%; padding: 11px 12px; border-radius: 12px; border: 1.5px solid var(--field-line); background: var(--field-bg); color: var(--text); font: inherit; font-size: 16px; outline: none; }
+.f-in:focus { border-color: var(--accent); }
+select.f-in { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 30px; }
+textarea.f-in { resize: vertical; min-height: 110px; font-size: 14px; }
+.f-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.f-four { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.f-four .f-in { padding: 10px 8px; }
+
+.btn.danger { background: rgba(217, 76, 76, .12); color: var(--bad); }
+.btn.full + .btn.full { margin-top: 8px; }
+#tab-editor > .btn.full { margin-top: 4px; }
+.adm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.adm-actions .btn { padding: 12px 10px; }
+.search-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.search-row .f-in { flex: 1; }
+
+.chips button { padding: 8px 12px; border-radius: 10px; background: var(--bg); font-weight: 700; font-size: 13.5px; border: 1.5px solid transparent; }
+.chips button.on { background: var(--accent); color: #fff; }
+
+/* Сводка */
+.person { display: block; width: 100%; text-align: left; background: var(--card); border-radius: 16px; padding: 12px 14px; margin-bottom: 8px; box-shadow: var(--shadow); border-left: 4px solid transparent; }
+.person.late { border-left-color: var(--bad); }
+.person.warn { border-left-color: var(--warn); }
+.person .p-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: baseline; }
+.person .p-name { font-weight: 800; font-size: 15.5px; }
+.person .p-kcal { font-weight: 800; white-space: nowrap; }
+.person .p-kcal.bad { color: var(--bad); }
+.person .p-kcal.ok { color: var(--accent); }
+.person .p-meta { color: var(--muted); font-size: 12.5px; margin-top: 3px; display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.person .p-meta .bad { color: var(--bad); font-weight: 700; }
+.person .p-meta .warn { color: var(--warn); font-weight: 700; }
+.res-cards.four { grid-template-columns: repeat(2, 1fr); }
+
+/* Список меню */
+.m-group { font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin: 16px 2px 8px; }
+.m-item { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 10px; text-align: left; background: var(--card); border-radius: 14px; padding: 12px 14px; margin-bottom: 8px; box-shadow: var(--shadow); }
+.m-item b { display: block; font-size: 15px; }
+.m-item small { color: var(--muted); font-size: 12.5px; }
+.m-item .dev { font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+.m-item .dev.bad { color: var(--bad); }
+.m-item .dev.ok { color: var(--accent); }
+
+/* Редактор меню */
+.menu-head .title { font-weight: 800; font-size: 17px; }
+.ed-meal { background: var(--card); border-radius: 16px; padding: 12px 14px; margin-bottom: 10px; box-shadow: var(--shadow); }
+.ed-meal .meal-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+.ed-meal .when { font-size: 12px; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: .04em; }
+.ed-meal .meal-kcal { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+.ed-row { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 10px; text-align: left; padding: 9px 0; border-top: 1px solid var(--line); }
+.ed-row:first-of-type { border-top: 0; }
+.ed-row .nm { font-weight: 700; }
+.ed-row .am { color: var(--muted); font-size: 12.5px; }
+.ed-row .kc { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
+.ed-row .kc::after { content: ' ›'; }
+.ed-add { color: var(--accent); font-weight: 700; font-size: 13.5px; padding: 8px 0 2px; }
+.day-total.bad span:last-child { color: var(--bad); font-weight: 700; }
+
+/* Подсказки продукта */
+.suggest { margin-top: 4px; max-height: 210px; overflow-y: auto; }
+.suggest button { display: flex; width: 100%; justify-content: space-between; gap: 10px; text-align: left; padding: 9px 4px; border-bottom: 1px solid var(--line); }
+.suggest button small { color: var(--muted); white-space: nowrap; }
+
+/* Назначения */
+.as-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: var(--card); border-radius: 14px; padding: 11px 14px; margin-bottom: 8px; box-shadow: var(--shadow); }
+.as-item.past { opacity: .55; }
+.as-item b { display: block; font-size: 14.5px; }
+.as-item small { color: var(--muted); font-size: 12.5px; }
+.as-item .x { width: 34px; height: 34px; border-radius: 50%; background: var(--bg); color: var(--muted); flex: none; }
+
+/* Продукты */
+.pr-item { display: flex; width: 100%; justify-content: space-between; gap: 10px; text-align: left; padding: 11px 14px; background: var(--card); border-bottom: 1px solid var(--line); }
+.pr-item:first-child { border-radius: 14px 14px 0 0; }
+.pr-item:last-child { border-radius: 0 0 14px 14px; border-bottom: 0; }
+.pr-item:only-child { border-radius: 14px; }
+.pr-item small { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
+
+.steps { background: var(--accent-soft); border-radius: 12px; padding: 10px 12px; font-size: 13px; line-height: 1.45; }
+.ai-res { margin-top: 12px; border-radius: 12px; padding: 10px 12px; font-size: 13.5px; line-height: 1.45; }
+.ai-res.ok { background: var(--accent-soft); }
+.ai-res.bad { background: rgba(217, 76, 76, .1); }
+.ai-res ul { margin: 6px 0 0; padding-left: 18px; }
+
+@media (max-width: 420px) {
+  .pr-item { flex-direction: column; gap: 2px; }
+  .pr-item small { white-space: normal; }
+  .f-four { grid-template-columns: 1fr 1fr; }
+}
