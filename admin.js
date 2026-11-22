@@ -442,21 +442,30 @@
 
   /* ---------- Меню от ИИ ---------- */
   $('#aiBtn').addEventListener('click', () => {
-    weekOptions('#aiWeek', 0);
-    $('#aiWeek').insertAdjacentHTML('afterbegin', '<option value="base">Бессрочно (основное меню)</option>');
-    $('#aiWeeks').value = '1';
-    syncAiWeeks();
+    aiPick = [S.nextMonday];
+    renderAiPeriods();
     $('#aiTier').innerHTML = '<option value="all">Для всех калоражей (1200–3000)</option>' + S.tiers.map(t => `<option value="${t}">${t} ккал</option>`).join('');
     $('#aiResult').innerHTML = '';
     renderAiUndo();
     openSheet('#aiSheet');
   });
-  // «На сколько недель» нужно только для меню на неделю — у бессрочного основного его нет
-  function syncAiWeeks() {
-    $('#aiWeeksBox').style.display = $('#aiWeek').value === 'base' ? 'none' : '';
-    if ($('#aiWeek').value !== 'base') weeksOptions('#aiWeeks', '#aiWeek');
+  // Выбор периода: «Бессрочно» (основное меню) или одна/несколько недель
+  let aiPick = [];
+  function renderAiPeriods() {
+    const out = [`<button data-w="base" class="${aiPick.includes('base') ? 'on' : ''}">♾ Бессрочно</button>`];
+    for (let i = 0; i <= 7; i++) {
+      const mon = addDays(S.monday, i * 7);
+      out.push(`<button data-w="${mon}" class="${aiPick.includes(mon) ? 'on' : ''}">${ddmm(mon)}–${ddmm(addDays(mon, 6))}${i === 0 ? ' · эта' : i === 1 ? ' · след.' : ''}</button>`);
+    }
+    $('#aiPeriods').innerHTML = out.join('');
   }
-  $('#aiWeek').addEventListener('change', syncAiWeeks);
+  $('#aiPeriods').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const w = b.dataset.w; haptic();
+    if (w === 'base') aiPick = aiPick.includes('base') ? [] : ['base'];
+    else { aiPick = aiPick.filter(x => x !== 'base'); aiPick = aiPick.includes(w) ? aiPick.filter(x => x !== w) : aiPick.concat(w); }
+    renderAiPeriods();
+  });
   async function copyText(text) {
     try { await navigator.clipboard.writeText(text); return true; } catch (e) {}
     const ta = document.createElement('textarea');
@@ -466,7 +475,8 @@
     ta.remove(); return ok;
   }
   $('#aiPrompt').addEventListener('click', async e => {
-    const r = await busy(e.currentTarget, 'Генерирую…', () => api('adm_ai_prompt', { tier: $('#aiTier').value, week: $('#aiWeek').value }));
+    if (!aiPick.length) return toast('Выберите, на какое время назначить меню');
+    const r = await busy(e.currentTarget, 'Генерирую…', () => api('adm_ai_prompt', { tier: $('#aiTier').value, week: aiPick[0] }));
     if (!r) return;
     // текст — в отдельное поле (не в поле для ответа ИИ) и кнопка «Скопировать»: копирование должно идти по нажатию пользователя
     let box = $('#aiPromptOut');
@@ -499,7 +509,8 @@
   $('#aiImport').addEventListener('click', async e => {
     const text = $('#aiText').value.trim();
     if (!text) return toast('Вставьте ответ ИИ');
-    const r = await busy(e.currentTarget, 'Загружаю…', () => api('adm_ai_import', { text, all: $('#aiTier').value === 'all', weeks: $('#aiWeek').value === 'base' ? 1 : +$('#aiWeeks').value }));
+    if (!aiPick.length) return toast('Выберите, на какое время назначить меню');
+    const r = await busy(e.currentTarget, 'Загружаю…', () => api('adm_ai_import', { text, all: $('#aiTier').value === 'all', weeks: aiPick }));
     if (!r) return;
     const li = a => '<ul>' + a.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>';
     if (!r.ok) {
