@@ -288,7 +288,6 @@
             <span class="kc">${fmt(r.kcal)} ккал · изменить</span></button>`).join('')}
           <button class="ed-add" data-meal="${esc(g.meal)}">＋ добавить ещё в «${esc(g.meal)}»</button>
         </div>`).join('') : '<div class="empty">В этот день пока ничего нет.<br>Нажмите «Добавить продукт» ниже 👇</div>');
-    $('#edDelete').classList.toggle('hidden', m.kind === 'base');
   }
   $('#edDays').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; ed.day = b.dataset.d; haptic(); renderEditor(); });
   $('#edMeals').addEventListener('click', e => {
@@ -299,7 +298,9 @@
   });
   $('#edAddMeal').addEventListener('click', () => openRow('add', null, ''));
   $('#edDelete').addEventListener('click', () => askConfirm('Удалить меню «' + ed.menu.code + '»?',
-    'Удалятся все его дни и назначения. Участники получат основное меню своего калоража.', async btn => {
+    ed.menu.kind === 'base'
+      ? 'Это обычное меню — оно работает каждую неделю. Удалятся все его дни и назначения. Участники этого калоража будут получать ближайшее другое обычное меню.'
+      : 'Удалятся все его дни и назначения. Участники получат основное меню своего калоража.', async btn => {
       const r = await busy(btn, 'Удаляю…', () => api('adm_menu_delete', { code: ed.menu.code }));
       if (!r) return;
       S.variants = r.variants; S.assignments = r.assignments;
