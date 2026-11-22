@@ -521,16 +521,29 @@
     const p = await busy(e.currentTarget, 'Проверяю…', () => api('adm_ai_preview', { text, all: $('#aiTier').value === 'all', weeks: aiPick, tier: $('#aiTier').value }));
     if (!p) return;
     if (!p.ok) return aiProblems(p);
-    const days = p.days.map(d => `<details class="ai-day"><summary><b>${esc(d.name)}</b> · ${fmt(d.kcal)} ккал</summary>${d.meals.map(m => `<div><b>${esc(m[0])}:</b> ${esc(m[1])}</div>`).join('')}</details>`).join('');
-    const per = p.periods.map(x => `<li>${esc(x.code)} — ${x.replaces ? '<b>заменит существующее</b>' : 'новое'}</li>`).join('');
-    $('#aiResult').innerHTML = `<div class="ai-res ok"><b>Проверьте, что добавится</b> (меню на ${p.tier} ккал, ниже — по дням):${days}
-      <br><b>Будет записано:</b><ul>${per}</ul>` +
-      (p.scaledNew ? `Пересчитается ещё меню на другие калоражи: ${p.scaledNew}<br>` : '') +
-      (p.newProducts.length ? `<br><b>Новые продукты (на 100 г):</b>${aiLi(p.newProducts.map(x => x[0] + ' — ' + x[1] + ' ккал, Б ' + x[2] + ', Ж ' + x[3] + ', У ' + x[4]))}` : '') +
-      (p.newRecipes.length ? `<b>Новые рецепты:</b> ${p.newRecipes.map(esc).join(', ')}<br>` : '') +
-      (p.replacedRecipes.length ? `<b>Рецепты заменятся новым составом:</b> ${p.replacedRecipes.map(esc).join(', ')}<br>` : '') +
-      (p.warnings.length ? `<br>⚠️ Проверьте:${aiLi(p.warnings)}` : '') +
-      `<button class="btn primary full" id="aiConfirm" style="margin-top:10px">✅ Записать в таблицу</button><button class="link" id="aiCancel">Отмена</button></div>`;
+    const first = p.periods[0];
+    const dayHtml = i => {
+      const d = p.days[i];
+      return `<div class="day-total"><span>${esc(d.full)}</span><span>${fmt(d.total.kcal)} ккал · Б ${fmt(d.total.p)} Ж ${fmt(d.total.f)} У ${fmt(d.total.c)}</span></div>` +
+        d.meals.map(g => `<div class="meal"><div class="meal-head"><span class="when">${esc(g.name)}</span><span class="meal-kcal">${fmt(g.kcal)} ккал</span></div>` +
+          g.items.map(x => `<div class="dish-row"><div class="dish">${esc(x.item)}</div><div class="nut">${fmt(x.qty, 2)} ${esc(x.unit)}${x.grams ? ' · ≈' + fmt(x.grams) + ' г' : ''} · ${fmt(x.kcal)} ккал · Б ${fmt(x.p, 1)} Ж ${fmt(x.f, 1)} У ${fmt(x.c, 1)}</div></div>`).join('') + '</div>').join('');
+    };
+    const per = p.periods.map(x => `<div class="pv-row"><span>${esc(x.code)}</span><b class="${x.replaces ? 'warn' : 'new'}">${x.replaces ? 'заменит существующее' : 'новое'}</b></div>`).join('');
+    const extra = [
+      p.scaledNew ? `<div class="pv-row"><span>Пересчёт на другие калоражи</span><b>+${p.scaledNew} меню</b></div>` : '',
+      p.newProducts.length ? `<div class="pv-h">Новые продукты (на 100 г)</div>` + p.newProducts.map(x => `<div class="pv-row"><span>${esc(x[0])}</span><span class="muted">${x[1]} ккал · Б ${x[2]} Ж ${x[3]} У ${x[4]}</span></div>`).join('') : '',
+      p.newRecipes.length ? `<div class="pv-h">Новые рецепты</div><div class="pv-text">${p.newRecipes.map(esc).join(', ')}</div>` : '',
+      p.replacedRecipes.length ? `<div class="pv-h">Рецепты заменятся новым составом</div><div class="pv-text">${p.replacedRecipes.map(esc).join(', ')}</div>` : '',
+      p.warnings.length ? `<div class="pv-h">⚠️ Проверьте</div>` + p.warnings.map(w => `<div class="pv-text warn">${esc(w)}</div>`).join('') : ''
+    ].join('');
+    $('#aiResult').innerHTML = `<div class="pv">
+      <div class="pv-top">👀 Так меню увидит участник</div>
+      <div class="menu-head card"><div class="code">${esc(first.code)}</div><div class="title">Меню на ${p.tier} ккал</div><div class="muted">${p.tier} ккал в день · дней: 7</div></div>
+      <div class="days" id="pvDays">${p.days.map((d, i) => `<button data-d="${i}" class="${i === 0 ? 'on' : ''}">${esc(d.day)}</button>`).join('')}</div>
+      <div id="pvMeals">${dayHtml(0)}</div>
+      <div class="pv-h" style="margin-top:14px">Что будет записано</div>${per}${extra}
+      <button class="btn primary full" id="aiConfirm" style="margin-top:14px">✅ Записать в таблицу</button><button class="link" id="aiCancel" style="display:block;margin:10px auto 0">Отмена</button></div>`;
+    $('#pvDays').onclick = ev => { const b = ev.target.closest('button'); if (!b) return; document.querySelectorAll('#pvDays button').forEach(x => x.classList.toggle('on', x === b)); $('#pvMeals').innerHTML = dayHtml(+b.dataset.d); haptic(); };
     $('#aiConfirm').onclick = ev => doAiImport(ev.currentTarget, text);
     $('#aiCancel').onclick = () => { $('#aiResult').innerHTML = ''; };
     $('#aiResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
