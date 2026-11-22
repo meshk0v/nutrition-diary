@@ -523,6 +523,7 @@
     S.variants = r.variants; renderMenuList(); haptic('ok');
     $('#aiText').value = '';
     $('#aiResult').innerHTML = `<div class="ai-res ok"><b>✅ Загружено:</b> ${r.codes.map(esc).join(', ')}<br>Новых продуктов: ${r.products}, рецептов: ${r.recipes}` +
+      (r.newProducts && r.newProducts.length ? `<br><br><b>Новые продукты — проверьте цифры (на 100 г):</b>${li(r.newProducts.map(p => p[0] + ' — ' + p[1] + ' ккал, Б ' + p[2] + ', Ж ' + p[3] + ', У ' + p[4]))}` : '') + +
       (r.scaled ? `<br>Пересчитано на другие калоражи: ${r.scaled.created} меню` + (r.scaled.skipped ? ` (уже были, не менялись: ${r.scaled.skipped})` : '') : '') +
       (r.warnings.length ? `<br><br>⚠️ Проверьте:${li(r.warnings)}` : '') +
       `<br><button class="link" id="aiOpen">Открыть меню →</button></div>`;
