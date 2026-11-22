@@ -442,7 +442,7 @@
     ta.remove(); return ok;
   }
   $('#aiPrompt').addEventListener('click', async e => {
-    const r = await busy(e.currentTarget, 'Генерирую…', () => api('adm_ai_prompt', { tier: $('#aiTier').value, protein: $('#aiProt').value, week: $('#aiWeek').value, wishes: $('#aiWish').value, style: $('#aiStyle').value }));
+    const r = await busy(e.currentTarget, 'Генерирую…', () => api('adm_ai_prompt', { tier: $('#aiTier').value, protein: $('#aiProt').value, week: $('#aiWeek').value, wishes: $('#aiWish').value }));
     if (!r) return;
     // текст — в отдельное поле (не в поле для ответа ИИ) и кнопка «Скопировать»: копирование должно идти по нажатию пользователя
     let box = $('#aiPromptOut');
