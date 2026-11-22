@@ -455,7 +455,7 @@
     const out = [`<button data-w="base" class="${aiPick.includes('base') ? 'on' : ''}">♾ Бессрочно</button>`];
     for (let i = 0; i <= 7; i++) {
       const mon = addDays(S.monday, i * 7);
-      out.push(`<button data-w="${mon}" class="${aiPick.includes(mon) ? 'on' : ''}">${ddmm(mon)}–${ddmm(addDays(mon, 6))}${i === 0 ? ' · эта' : i === 1 ? ' · след.' : ''}</button>`);
+      out.push(`<button data-w="${mon}" class="${aiPick.includes(mon) ? 'on' : ''}">${ddmm(mon)}–${ddmm(addDays(mon, 6))}</button>`);
     }
     $('#aiPeriods').innerHTML = out.join('');
   }
