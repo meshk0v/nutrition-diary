@@ -433,6 +433,7 @@
     $('#aiWeek').insertAdjacentHTML('afterbegin', '<option value="base">Бессрочно (основное меню)</option>');
     $('#aiTier').innerHTML = '<option value="all">Для всех калоражей (1200–3000)</option>' + S.tiers.map(t => `<option value="${t}">${t} ккал</option>`).join('');
     $('#aiResult').innerHTML = '';
+    renderAiUndo();
     openSheet('#aiSheet');
   });
   async function copyText(text) {
@@ -461,6 +462,19 @@
       else toast('Текст выделен — нажмите «Копировать» в меню телефона');
     };
   });
+  // «Отменить последнюю загрузку»: возвращает прежние меню и удаляет созданные
+  function renderAiUndo() {
+    const box = $('#aiUndo');
+    box.innerHTML = S.undo ? `<div class="muted">Последняя загрузка: ${esc(S.undo)}</div><button class="link" id="aiUndoBtn">↩ Отменить и вернуть прежние меню</button>` : '';
+    if (!S.undo) return;
+    $('#aiUndoBtn').onclick = async e => {
+      if (!confirm('Отменить последнюю загрузку? Заменённые меню вернутся как были, созданные загрузкой удалятся.')) return;
+      const r = await busy(e.currentTarget, 'Отменяю…', () => api('adm_ai_undo', {}));
+      if (!r) return;
+      S.variants = r.variants; S.undo = ''; renderMenuList(); renderAiUndo(); haptic('ok');
+      $('#aiResult').innerHTML = `<div class="ai-res ok">↩ Отменено: вернул ${r.restored}, удалил созданных ${r.removed}</div>`;
+    };
+  }
   $('#aiImport').addEventListener('click', async e => {
     const text = $('#aiText').value.trim();
     if (!text) return toast('Вставьте ответ ИИ');
@@ -476,10 +490,11 @@
     S.variants = r.variants; renderMenuList(); haptic('ok');
     $('#aiText').value = '';
     $('#aiResult').innerHTML = `<div class="ai-res ok"><b>✅ Загружено:</b> ${r.codes.map(esc).join(', ')}<br>Новых продуктов: ${r.products}, рецептов: ${r.recipes}` +
-      (r.scaled ? `<br>Пересчитано на другие калоражи: ${r.scaled.created} меню` + (r.scaled.skipped ? ` (уже были, не менялись: ${r.scaled.skipped})` : '') : '') + +
+      (r.scaled ? `<br>Пересчитано на другие калоражи: ${r.scaled.created} меню` + (r.scaled.skipped ? ` (уже были, не менялись: ${r.scaled.skipped})` : '') : '') +
       (r.warnings.length ? `<br><br>⚠️ Проверьте:${li(r.warnings)}` : '') +
       `<br><button class="link" id="aiOpen">Открыть меню →</button></div>`;
     $('#aiOpen').onclick = () => { closeSheets(); openEditor(r.codes[0]); };
+    S.undo = r.undo; renderAiUndo();
     refreshVariantsLater();
   });
 
