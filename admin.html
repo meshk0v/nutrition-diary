@@ -7,10 +7,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="app.css?v=1795356823">
-  <link rel="stylesheet" href="admin.css?v=1795356823">
-  <script src="https://telegram.org/js/telegram-web-app.js?v=1795356823"></script>
-  <script src="config.js?v=1795356823"></script>
+  <link rel="stylesheet" href="app.css?v=1795357036">
+  <link rel="stylesheet" href="admin.css?v=1795357036">
+  <script src="https://telegram.org/js/telegram-web-app.js?v=1795357036"></script>
+  <script src="config.js?v=1795357036"></script>
 </head>
 <body class="booting">
   <div class="boot" id="boot"><div class="spin"></div></div>
@@ -47,7 +47,6 @@
           <button class="btn" id="newWeekBtn">➕ Новая неделя</button>
           <button class="btn" id="aiBtn">🤖 Меню от ИИ</button>
         </div>
-        <button class="btn full" id="scaleBtn" style="margin-bottom:12px">🔢 Основные меню с шагом 50 ккал</button>
         <div id="menuList"></div>
       </section>
 
@@ -132,26 +131,6 @@
   </div>
 
   <!-- Новая неделя -->
-  <div class="sheet hidden" id="scaleSheet">
-    <div class="sheet-body compact">
-      <div class="sheet-top">
-        <div class="q-title">Меню на каждые 50 ккал</div>
-        <button class="close" data-close>✕</button>
-      </div>
-      <div class="muted">Возьмём основное меню и сделаем такое же на другие калоражи: все порции пересчитаются пропорционально. Уже существующие меню не трогаем.</div>
-      <label class="f-lbl">Взять за основу</label>
-      <select class="f-in" id="scSrc"></select>
-      <div class="f-two">
-        <div><label class="f-lbl">От, ккал</label><input class="f-in" id="scFrom" inputmode="numeric"></div>
-        <div><label class="f-lbl">До, ккал</label><input class="f-in" id="scTo" inputmode="numeric"></div>
-      </div>
-      <label class="f-lbl">Шаг, ккал</label>
-      <input class="f-in" id="scStep" inputmode="numeric" value="50">
-      <button class="btn primary full" id="scGo" style="margin-top:14px">Создать меню</button>
-      <div class="muted" id="scMsg" style="margin-top:10px"></div>
-    </div>
-  </div>
-
   <div class="sheet hidden" id="weekSheet">
     <div class="sheet-body compact">
       <div class="sheet-top">
@@ -284,6 +263,6 @@
   </div>
 
   <div class="toast hidden" id="toast"></div>
-  <script src="admin.js?v=1795356823"></script>
+  <script src="admin.js?v=1795357036"></script>
 </body>
 </html>
