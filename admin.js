@@ -427,6 +427,25 @@
       (r.skipped.length ? '<br>Уже были: ' + r.skipped.map(esc).join(', ') : '');
   });
 
+  /* ---------- Основные меню с шагом ---------- */
+  $('#scaleBtn').addEventListener('click', () => {
+    const bases = S.variants.filter(v => v.kind === 'base');
+    if (!bases.length) return toast('Сначала нужно хотя бы одно основное меню');
+    $('#scSrc').innerHTML = bases.map(v => `<option value="${esc(v.code)}">${esc(v.code)}</option>`).join('');
+    const ts = S.tiers.length ? S.tiers : [1200];
+    if (!$('#scFrom').value) $('#scFrom').value = Math.min(...ts);
+    if (!$('#scTo').value) $('#scTo').value = Math.max(...ts);
+    $('#scMsg').textContent = '';
+    openSheet('#scaleSheet');
+  });
+  $('#scGo').addEventListener('click', async e => {
+    const r = await busy(e.currentTarget, 'Создаю…', () => api('adm_scale_base', { src: $('#scSrc').value, from: $('#scFrom').value, to: $('#scTo').value, step: $('#scStep').value }));
+    if (!r) return;
+    S.variants = r.variants; if (r.tiers) S.tiers = r.tiers; renderMenuList(); haptic('ok');
+    $('#scMsg').innerHTML = (r.created.length ? '✅ Создано ' + r.created.length + ': ' + r.created.map(esc).join(', ') : 'Ничего не создано') +
+      (r.skipped.length ? '<br>Уже были: ' + r.skipped.map(esc).join(', ') : '');
+  });
+
   /* ---------- Меню от ИИ ---------- */
   $('#aiBtn').addEventListener('click', () => {
     weekOptions('#aiWeek', 0);
