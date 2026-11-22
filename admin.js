@@ -430,6 +430,7 @@
   /* ---------- Меню от ИИ ---------- */
   $('#aiBtn').addEventListener('click', () => {
     weekOptions('#aiWeek', 0);
+    $('#aiWeek').insertAdjacentHTML('afterbegin', '<option value="base">Бессрочно (основное меню)</option>');
     if (!$('#aiTier').value) $('#aiTier').value = S.tiers[2] || S.tiers[0] || 1500;
     $('#aiResult').innerHTML = '';
     openSheet('#aiSheet');
