@@ -476,7 +476,7 @@
   }
   $('#aiPrompt').addEventListener('click', async e => {
     if (!aiPick.length) return toast('Выберите, на какое время назначить меню');
-    const r = await busy(e.currentTarget, 'Генерирую…', () => api('adm_ai_prompt', { tier: $('#aiTier').value, week: aiPick[0] }));
+    const r = await busy(e.currentTarget, 'Генерирую…', () => api('adm_ai_prompt', { tier: $('#aiTier').value, week: aiPick[0], comment: $('#aiComment').value }));
     if (!r) return;
     // текст — в отдельное поле (не в поле для ответа ИИ) и кнопка «Скопировать»: копирование должно идти по нажатию пользователя
     let box = $('#aiPromptOut');
