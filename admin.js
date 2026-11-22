@@ -444,8 +444,20 @@
   $('#aiPrompt').addEventListener('click', async e => {
     const r = await busy(e.currentTarget, 'Готовлю…', () => api('adm_ai_prompt', { tier: $('#aiTier').value, protein: $('#aiProt').value, week: $('#aiWeek').value, wishes: $('#aiWish').value }));
     if (!r) return;
-    if (await copyText(r.text)) { toast('Скопировано! Теперь откройте ChatGPT и вставьте'); haptic('ok'); }
-    else { $('#aiText').value = r.text; toast('Не удалось скопировать — текст в поле ниже, скопируйте вручную'); }
+    // текст — в отдельное поле (не в поле для ответа ИИ) и кнопка «Скопировать»: копирование должно идти по нажатию пользователя
+    let box = $('#aiPromptOut');
+    if (!box) { box = document.createElement('div'); box.id = 'aiPromptOut'; box.className = 'ai-res ok'; $('#aiPrompt').insertAdjacentElement('afterend', box); }
+    box.innerHTML = `<b>Шаг 1. Скопируйте этот текст и вставьте в ChatGPT</b>
+      <textarea id="aiPromptText" rows="6" readonly style="width:100%;margin:8px 0"></textarea>
+      <button class="btn primary full" id="aiPromptCopy" type="button">📋 Скопировать</button>`;
+    $('#aiPromptText').value = r.text;
+    $('#aiPromptCopy').onclick = () => {
+      const ta = $('#aiPromptText'); ta.focus(); ta.select(); ta.setSelectionRange(0, ta.value.length);
+      let ok = false; try { ok = document.execCommand('copy'); } catch (err) {}
+      if (ok) { toast('Скопировано! Теперь откройте ChatGPT и вставьте'); haptic('ok'); return; }
+      if (navigator.clipboard) navigator.clipboard.writeText(r.text).then(() => { toast('Скопировано! Теперь откройте ChatGPT и вставьте'); haptic('ok'); }, () => toast('Текст выделен — нажмите «Копировать» в меню телефона'));
+      else toast('Текст выделен — нажмите «Копировать» в меню телефона');
+    };
   });
   $('#aiImport').addEventListener('click', async e => {
     const text = $('#aiText').value.trim();
