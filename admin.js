@@ -533,7 +533,7 @@
       p.scaledNew ? `<div class="pv-row"><span>Пересчёт на другие калоражи</span><b>+${p.scaledNew} меню</b></div>` : '',
       p.newProducts.length ? `<div class="pv-h">Новые продукты (на 100 г)</div>` + p.newProducts.map(x => `<div class="pv-row"><span>${esc(x[0])}</span><span class="muted">${x[1]} ккал · Б ${x[2]} Ж ${x[3]} У ${x[4]}</span></div>`).join('') : '',
       p.newRecipes.length ? `<div class="pv-h">Новые рецепты</div><div class="pv-text">${p.newRecipes.map(esc).join(', ')}</div>` : '',
-      p.replacedRecipes.length ? `<div class="pv-h">Рецепты заменятся новым составом</div><div class="pv-text">${p.replacedRecipes.map(esc).join(', ')}</div>` : '',
+      p.replacedRecipes.length ? `<div class="pv-h">⚠️ Рецепты заменятся новым составом</div>` + p.replacedRecipes.map(r => `<div class="pv-rec"><b>${esc(r.name)}</b><div class="pv-was"><span>Было · ${fmt(r.oldPortions, 2)} порц.</span>${esc(r.oldItems.join('; '))}</div><div class="pv-now"><span>Станет · ${fmt(r.newPortions, 2)} порц.</span>${esc(r.newItems.join('; '))}</div><div class="pv-used">${r.usedIn.length ? 'Сейчас стоит в меню (' + r.usedIn.length + '): ' + esc(r.usedIn.slice(0, 6).join(', ')) + (r.usedIn.length > 6 ? ' и ещё ' + (r.usedIn.length - 6) : '') + '.<br><b>Во всех этих меню блюдо изменится на новый состав, калории пересчитаются.</b>' : 'Пока ни в одном меню не используется.'}</div></div>`).join('') : '',
       p.warnings.length ? `<div class="pv-h">⚠️ Проверьте</div>` + p.warnings.map(w => `<div class="pv-text warn">${esc(w)}</div>`).join('') : ''
     ].join('');
     $('#aiResult').innerHTML = `<div class="pv">
