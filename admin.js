@@ -518,7 +518,7 @@
     const text = $('#aiText').value.trim();
     if (!text) return toast('Вставьте ответ ИИ');
     if (!aiPick.length) return toast('Выберите, на какое время назначить меню');
-    const p = await busy(e.currentTarget, 'Проверяю…', () => api('adm_ai_preview', { text, all: $('#aiTier').value === 'all', weeks: aiPick }));
+    const p = await busy(e.currentTarget, 'Проверяю…', () => api('adm_ai_preview', { text, all: $('#aiTier').value === 'all', weeks: aiPick, tier: $('#aiTier').value }));
     if (!p) return;
     if (!p.ok) return aiProblems(p);
     const days = p.days.map(d => `<details class="ai-day"><summary><b>${esc(d.name)}</b> · ${fmt(d.kcal)} ккал</summary>${d.meals.map(m => `<div><b>${esc(m[0])}:</b> ${esc(m[1])}</div>`).join('')}</details>`).join('');
@@ -536,7 +536,7 @@
     $('#aiResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   });
   async function doAiImport(btn, text) {
-    const r = await busy(btn, 'Загружаю…', () => api('adm_ai_import', { text, all: $('#aiTier').value === 'all', weeks: aiPick }));
+    const r = await busy(btn, 'Загружаю…', () => api('adm_ai_import', { text, all: $('#aiTier').value === 'all', weeks: aiPick, tier: $('#aiTier').value }));
     if (!r) return;
     const li = aiLi;
     if (!r.ok) return aiProblems(r);
