@@ -7,10 +7,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="app.css?v=1795357036">
-  <link rel="stylesheet" href="admin.css?v=1795357036">
-  <script src="https://telegram.org/js/telegram-web-app.js?v=1795357036"></script>
-  <script src="config.js?v=1795357036"></script>
+  <link rel="stylesheet" href="app.css?v=1795361024">
+  <link rel="stylesheet" href="admin.css?v=1795361024">
+  <script src="https://telegram.org/js/telegram-web-app.js?v=1795361024"></script>
+  <script src="config.js?v=1795361024"></script>
 </head>
 <body class="booting">
   <div class="boot" id="boot"><div class="spin"></div></div>
@@ -158,17 +158,12 @@
         <div class="q-title">🤖 Меню от ИИ</div>
         <button class="close" data-close>✕</button>
       </div>
-      <div class="steps"><b>Как это работает:</b><br><b>1.</b> Заполните поля и нажмите «Сгенерировать текст», потом «Скопировать».<br><b>2.</b> Откройте ChatGPT, вставьте текст и отправьте.<br><b>3.</b> Скопируйте весь ответ ChatGPT и вставьте в поле внизу.<br><b>4.</b> Нажмите «Загрузить в меню».</div>
-      <div class="f-two">
-        <div><label class="f-lbl">Калорий в день</label><input class="f-in" id="aiTier" inputmode="numeric"></div>
-        <div><label class="f-lbl">Белка, г в день</label><input class="f-in" id="aiProt" inputmode="numeric" placeholder="можно пусто"></div>
-      </div>
+      <div class="steps"><b>Как это работает:</b><br><b>1.</b> Заполните поля и нажмите «Сгенерировать текст», потом «Скопировать».<br><b>2.</b> Откройте ИИ, вставьте текст и отправьте.<br><b>3.</b> Скопируйте весь ответ ИИ и вставьте в поле внизу.<br><b>4.</b> Нажмите «Загрузить в меню».</div>
+      <label class="f-lbl">Калорий в день</label><input class="f-in" id="aiTier" inputmode="numeric">
       <label class="f-lbl">Неделя</label>
       <select class="f-in" id="aiWeek"></select>
-      <label class="f-lbl">Пожелания <span class="muted">(можно пусто)</span></label>
-      <input class="f-in" id="aiWish" placeholder="например: без молочного, без рыбы">
-      <button class="btn full" id="aiPrompt" style="margin-top:12px">✨ Сгенерировать текст для ChatGPT</button>
-      <label class="f-lbl" style="margin-top:16px">Сюда — ответ ChatGPT</label>
+      <button class="btn full" id="aiPrompt" style="margin-top:12px">✨ Сгенерировать текст для ИИ</button>
+      <label class="f-lbl" style="margin-top:16px">Сюда — ответ ИИ</label>
       <textarea class="f-in grow" id="aiText" rows="5" placeholder="Нажмите и удерживайте → «Вставить»"></textarea>
       <button class="btn primary full" id="aiImport" style="margin-top:12px">Загрузить в меню</button>
       <div id="aiResult"></div>
@@ -263,6 +258,6 @@
   </div>
 
   <div class="toast hidden" id="toast"></div>
-  <script src="admin.js?v=1795357036"></script>
+  <script src="admin.js?v=1795361024"></script>
 </body>
 </html>
