@@ -507,19 +507,39 @@
       $('#aiResult').innerHTML = `<div class="ai-res ok">↩ Отменено: вернул ${r.restored}, удалил созданных ${r.removed}</div>`;
     };
   }
+  const aiLi = a => '<ul>' + a.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>';
+  function aiProblems(r) {
+    $('#aiResult').innerHTML = `<div class="ai-res bad"><b>Ничего не записано</b> — в ответе ИИ нужно поправить:${aiLi(r.problems)}
+      <button class="link" id="aiCopyProblems">📋 Скопировать список для ИИ</button></div>`;
+    $('#aiCopyProblems').onclick = () => copyText('Исправь и пришли ответ целиком в том же формате:\n- ' + r.problems.join('\n- ')).then(() => toast('Скопировано'));
+  }
+  // Шаг 1: показываем, что будет добавлено. Шаг 2 (кнопка «Записать») — реальная загрузка.
   $('#aiImport').addEventListener('click', async e => {
     const text = $('#aiText').value.trim();
     if (!text) return toast('Вставьте ответ ИИ');
     if (!aiPick.length) return toast('Выберите, на какое время назначить меню');
-    const r = await busy(e.currentTarget, 'Загружаю…', () => api('adm_ai_import', { text, all: $('#aiTier').value === 'all', weeks: aiPick }));
+    const p = await busy(e.currentTarget, 'Проверяю…', () => api('adm_ai_preview', { text, all: $('#aiTier').value === 'all', weeks: aiPick }));
+    if (!p) return;
+    if (!p.ok) return aiProblems(p);
+    const days = p.days.map(d => `<details class="ai-day"><summary><b>${esc(d.name)}</b> · ${fmt(d.kcal)} ккал</summary>${d.meals.map(m => `<div><b>${esc(m[0])}:</b> ${esc(m[1])}</div>`).join('')}</details>`).join('');
+    const per = p.periods.map(x => `<li>${esc(x.code)} — ${x.replaces ? '<b>заменит существующее</b>' : 'новое'}</li>`).join('');
+    $('#aiResult').innerHTML = `<div class="ai-res ok"><b>Проверьте, что добавится</b> (меню на ${p.tier} ккал, ниже — по дням):${days}
+      <br><b>Будет записано:</b><ul>${per}</ul>` +
+      (p.scaledNew ? `Пересчитается ещё меню на другие калоражи: ${p.scaledNew}<br>` : '') +
+      (p.newProducts.length ? `<br><b>Новые продукты (на 100 г):</b>${aiLi(p.newProducts.map(x => x[0] + ' — ' + x[1] + ' ккал, Б ' + x[2] + ', Ж ' + x[3] + ', У ' + x[4]))}` : '') +
+      (p.newRecipes.length ? `<b>Новые рецепты:</b> ${p.newRecipes.map(esc).join(', ')}<br>` : '') +
+      (p.replacedRecipes.length ? `<b>Рецепты заменятся новым составом:</b> ${p.replacedRecipes.map(esc).join(', ')}<br>` : '') +
+      (p.warnings.length ? `<br>⚠️ Проверьте:${aiLi(p.warnings)}` : '') +
+      `<button class="btn primary full" id="aiConfirm" style="margin-top:10px">✅ Записать в таблицу</button><button class="link" id="aiCancel">Отмена</button></div>`;
+    $('#aiConfirm').onclick = ev => doAiImport(ev.currentTarget, text);
+    $('#aiCancel').onclick = () => { $('#aiResult').innerHTML = ''; };
+    $('#aiResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+  async function doAiImport(btn, text) {
+    const r = await busy(btn, 'Загружаю…', () => api('adm_ai_import', { text, all: $('#aiTier').value === 'all', weeks: aiPick }));
     if (!r) return;
-    const li = a => '<ul>' + a.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>';
-    if (!r.ok) {
-      $('#aiResult').innerHTML = `<div class="ai-res bad"><b>Ничего не записано</b> — в ответе ИИ нужно поправить:${li(r.problems)}
-        <button class="link" id="aiCopyProblems">📋 Скопировать список для ИИ</button></div>`;
-      $('#aiCopyProblems').onclick = () => copyText('Исправь и пришли ответ целиком в том же формате:\n- ' + r.problems.join('\n- ')).then(() => toast('Скопировано'));
-      return;
-    }
+    const li = aiLi;
+    if (!r.ok) return aiProblems(r);
     S.variants = r.variants; renderMenuList(); haptic('ok');
     $('#aiText').value = '';
     $('#aiResult').innerHTML = `<div class="ai-res ok"><b>✅ Загружено:</b> ${r.codes.map(esc).join(', ')}<br>Новых продуктов: ${r.products}, рецептов: ${r.recipes}` +
@@ -530,7 +550,7 @@
     $('#aiOpen').onclick = () => { closeSheets(); openEditor(r.codes[0]); };
     S.undo = r.undo; renderAiUndo();
     refreshVariantsLater();
-  });
+  }
 
   /* ---------- Назначения ---------- */
   function renderAssign() {
