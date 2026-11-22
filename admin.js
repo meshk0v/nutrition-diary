@@ -431,7 +431,7 @@
   $('#aiBtn').addEventListener('click', () => {
     weekOptions('#aiWeek', 0);
     $('#aiWeek').insertAdjacentHTML('afterbegin', '<option value="base">Бессрочно (основное меню)</option>');
-    if (!$('#aiTier').value) $('#aiTier').value = S.tiers[2] || S.tiers[0] || 1500;
+    $('#aiTier').innerHTML = '<option value="all">Для всех калоражей (1200–3000)</option>' + S.tiers.map(t => `<option value="${t}">${t} ккал</option>`).join('');
     $('#aiResult').innerHTML = '';
     openSheet('#aiSheet');
   });
@@ -464,7 +464,7 @@
   $('#aiImport').addEventListener('click', async e => {
     const text = $('#aiText').value.trim();
     if (!text) return toast('Вставьте ответ ИИ');
-    const r = await busy(e.currentTarget, 'Загружаю…', () => api('adm_ai_import', { text }));
+    const r = await busy(e.currentTarget, 'Загружаю…', () => api('adm_ai_import', { text, all: $('#aiTier').value === 'all' }));
     if (!r) return;
     const li = a => '<ul>' + a.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>';
     if (!r.ok) {
@@ -476,6 +476,7 @@
     S.variants = r.variants; renderMenuList(); haptic('ok');
     $('#aiText').value = '';
     $('#aiResult').innerHTML = `<div class="ai-res ok"><b>✅ Загружено:</b> ${r.codes.map(esc).join(', ')}<br>Новых продуктов: ${r.products}, рецептов: ${r.recipes}` +
+      (r.scaled ? `<br>Пересчитано на другие калоражи: ${r.scaled.created} меню` + (r.scaled.skipped ? ` (уже были, не менялись: ${r.scaled.skipped})` : '') : '') + +
       (r.warnings.length ? `<br><br>⚠️ Проверьте:${li(r.warnings)}` : '') +
       `<br><button class="link" id="aiOpen">Открыть меню →</button></div>`;
     $('#aiOpen').onclick = () => { closeSheets(); openEditor(r.codes[0]); };
