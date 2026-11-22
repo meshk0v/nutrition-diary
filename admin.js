@@ -442,13 +442,13 @@
     ta.remove(); return ok;
   }
   $('#aiPrompt').addEventListener('click', async e => {
-    const r = await busy(e.currentTarget, 'Готовлю…', () => api('adm_ai_prompt', { tier: $('#aiTier').value, protein: $('#aiProt').value, week: $('#aiWeek').value, wishes: $('#aiWish').value }));
+    const r = await busy(e.currentTarget, 'Генерирую…', () => api('adm_ai_prompt', { tier: $('#aiTier').value, protein: $('#aiProt').value, week: $('#aiWeek').value, wishes: $('#aiWish').value }));
     if (!r) return;
     // текст — в отдельное поле (не в поле для ответа ИИ) и кнопка «Скопировать»: копирование должно идти по нажатию пользователя
     let box = $('#aiPromptOut');
     if (!box) { box = document.createElement('div'); box.id = 'aiPromptOut'; box.className = 'ai-res ok'; $('#aiPrompt').insertAdjacentElement('afterend', box); }
     box.innerHTML = `<b>Шаг 1. Скопируйте этот текст и вставьте в ChatGPT</b>
-      <textarea id="aiPromptText" rows="6" readonly style="width:100%;margin:8px 0"></textarea>
+      <textarea class="f-in" id="aiPromptText" rows="6" readonly style="margin:8px 0"></textarea>
       <button class="btn primary full" id="aiPromptCopy" type="button">📋 Скопировать</button>`;
     $('#aiPromptText').value = r.text;
     $('#aiPromptCopy').onclick = () => {
