@@ -149,3 +149,4 @@ textarea.f-in { resize: vertical; min-height: 110px; font-size: 14px; }
 .ps-rep { display: flex; flex-direction: column; gap: 2px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
 .ps-rep .dt { color: var(--muted); font-size: 12px; font-weight: 700; }
 .ps-rep .note { color: var(--muted); font-size: 12.5px; }
+.ai-warn { margin-top: 8px; border-radius: 12px; padding: 9px 12px; font-size: 13px; line-height: 1.4; background: rgba(230, 160, 40, .15); color: #e6a028; }

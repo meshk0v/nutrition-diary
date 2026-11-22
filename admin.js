@@ -458,6 +458,7 @@
       out.push(`<button data-w="${mon}" class="${aiPick.includes(mon) ? 'on' : ''}">${ddmm(mon)}–${ddmm(addDays(mon, 6))}</button>`);
     }
     $('#aiPeriods').innerHTML = out.join('');
+    $('#aiBaseWarn').classList.toggle('hidden', !aiPick.includes('base'));
   }
   $('#aiPeriods').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
