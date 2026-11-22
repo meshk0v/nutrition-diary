@@ -400,6 +400,19 @@
     $(sel).value = S.nextMonday;
   }
 
+  // «На сколько недель»: 1…8 подряд (подпись — с какого по какое число)
+  function weeksOptions(sel, weekSel) {
+    const mon = $(weekSel).value;
+    const out = [];
+    for (let n = 1; n <= 8; n++) {
+      const label = n === 1 ? '1 неделя' : n + ' ' + (n < 5 ? 'недели' : 'недель') + (mon && mon !== 'base' ? ' (до ' + ddmm(addDays(addDays(mon, 7 * (n - 1)), 6)) + ')' : '');
+      out.push(`<option value="${n}">${label}</option>`);
+    }
+    const cur = $(sel).value || '1';
+    $(sel).innerHTML = out.join('');
+    $(sel).value = cur;
+  }
+
   /* ---------- Новая неделя: копия или пустое меню ---------- */
   let wkMode = 'copy';
   function renderWeekMode() {
@@ -431,11 +444,19 @@
   $('#aiBtn').addEventListener('click', () => {
     weekOptions('#aiWeek', 0);
     $('#aiWeek').insertAdjacentHTML('afterbegin', '<option value="base">Бессрочно (основное меню)</option>');
+    $('#aiWeeks').value = '1';
+    syncAiWeeks();
     $('#aiTier').innerHTML = '<option value="all">Для всех калоражей (1200–3000)</option>' + S.tiers.map(t => `<option value="${t}">${t} ккал</option>`).join('');
     $('#aiResult').innerHTML = '';
     renderAiUndo();
     openSheet('#aiSheet');
   });
+  // «На сколько недель» нужно только для меню на неделю — у бессрочного основного его нет
+  function syncAiWeeks() {
+    $('#aiWeeksBox').style.display = $('#aiWeek').value === 'base' ? 'none' : '';
+    if ($('#aiWeek').value !== 'base') weeksOptions('#aiWeeks', '#aiWeek');
+  }
+  $('#aiWeek').addEventListener('change', syncAiWeeks);
   async function copyText(text) {
     try { await navigator.clipboard.writeText(text); return true; } catch (e) {}
     const ta = document.createElement('textarea');
@@ -478,7 +499,7 @@
   $('#aiImport').addEventListener('click', async e => {
     const text = $('#aiText').value.trim();
     if (!text) return toast('Вставьте ответ ИИ');
-    const r = await busy(e.currentTarget, 'Загружаю…', () => api('adm_ai_import', { text, all: $('#aiTier').value === 'all' }));
+    const r = await busy(e.currentTarget, 'Загружаю…', () => api('adm_ai_import', { text, all: $('#aiTier').value === 'all', weeks: $('#aiWeek').value === 'base' ? 1 : +$('#aiWeeks').value }));
     if (!r) return;
     const li = a => '<ul>' + a.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>';
     if (!r.ok) {
@@ -501,6 +522,7 @@
   /* ---------- Назначения ---------- */
   function renderAssign() {
     weekOptions('#asWeek');
+    weeksOptions('#asWeeks', '#asWeek');
     $('#asTarget').innerHTML = S.targets.map(t => `<option>${esc(t)}</option>`).join('');
     $('#asVariant').innerHTML = S.variants.map(v => `<option value="${esc(v.code)}">${esc(v.code)}</option>`).join('');
     const cur = S.monday;
@@ -510,11 +532,12 @@
         <button class="x" data-row="${a.row}" aria-label="Убрать">✕</button>
       </div>`).join('') : '<div class="empty">Назначений нет — все получают меню по калоражу</div>';
   }
+  $('#asWeek').addEventListener('change', () => weeksOptions('#asWeeks', '#asWeek'));
   $('#asSave').addEventListener('click', async e => {
-    const r = await busy(e.currentTarget, 'Сохраняю…', () => api('adm_assign', { week: $('#asWeek').value, target: $('#asTarget').value, variant: $('#asVariant').value }));
+    const r = await busy(e.currentTarget, 'Сохраняю…', () => api('adm_assign', { week: $('#asWeek').value, weeks: +$('#asWeeks').value, target: $('#asTarget').value, variant: $('#asVariant').value }));
     if (!r) return;
     S.assignments = r.assignments; S.stats = r.stats; renderAssign(); renderStats(); haptic('ok');
-    toast(r.replaced ? 'Назначение обновлено' : 'Назначено');
+    toast(r.updated && !r.added ? 'Назначение обновлено' : r.added > 1 || r.updated ? 'Назначено на недель: ' + (r.added + r.updated) : 'Назначено');
   });
   $('#asList').addEventListener('click', e => {
     const b = e.target.closest('[data-row]'); if (!b) return;
