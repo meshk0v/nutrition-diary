@@ -404,10 +404,10 @@
   let wkMode = 'copy';
   function renderWeekMode() {
     $$('#wkMode button').forEach(b => b.classList.toggle('on', b.dataset.m === wkMode));
-    const tiers = S.tiers.map(t => `<option value="${t}">${wkMode === 'copy' ? 'Только ' : ''}${t} ккал</option>`).join('');
-    $('#wkTier').innerHTML = wkMode === 'copy' ? `<option value="">Все калоражи (${S.tiers.join(', ')})</option>` + tiers : tiers;
+    const tiers = S.tiers.map(t => `<option value="${t}">${t} ккал</option>`).join('');
+    $('#wkTier').innerHTML = wkMode === 'copy' ? `<option value="">Для всех калоражей</option>` + tiers : tiers;
     $('#wkHint').textContent = wkMode === 'copy'
-      ? 'Возьмём меню прошлой недели (или основное) и скопируем. Потом поменяете то, что нужно.'
+      ? 'Скопируем меню прошлой недели (если его не было — основное). Потом можно поменять что нужно.'
       : 'Создадим пустое меню на неделю — и вы сами добавите продукты по дням. Пока оно пустое, участники получают основное меню.';
     $('#wkGo').textContent = wkMode === 'copy' ? 'Создать копию' : 'Создать и заполнить';
     $('#wkMsg').textContent = '';
