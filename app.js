@@ -758,6 +758,7 @@
     btn.disabled = true; btn.textContent = data.photos.length ? 'Отправляю со скриншотами…' : 'Отправляю…';
     try {
       const r = await api('saveReport', data);
+      if (r.queued) { haptic('ok'); toast(r.message); btn.disabled = false; btn.textContent = 'Отправить отчёт тренеру'; return; }
       state.daily = state.daily || {};
       state.daily[repDay] = r.report;
       if (r.weights) state.weights = r.weights;
