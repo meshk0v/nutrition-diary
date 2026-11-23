@@ -376,3 +376,8 @@ textarea.grow { resize: none; overflow-y: auto; line-height: 1.4; display: block
 /* Тренер, который ещё и участник: переход в админку */
 .top-right { display: flex; gap: 8px; align-items: center; }
 .admin-btn { padding: 6px 12px; border-radius: 15px; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 13px; }
+
+.anketa .req { color: #e5484d; font-weight: 700; }
+.anketa .fld.bad .lbl { color: #e5484d; }
+.anketa .fld.bad input, .anketa .fld.bad textarea { border-color: #e5484d; }
+.anketa .fld.bad .choice { outline: 1.5px solid #e5484d; outline-offset: 3px; border-radius: 12px; }

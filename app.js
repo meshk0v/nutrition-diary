@@ -60,7 +60,7 @@
         body: JSON.stringify(Object.assign({ action, initData: inTelegram ? tg.initData : '', demo: !inTelegram }, data))
       });
       const json = await res.json();
-      if (json.error) throw Object.assign(new Error(json.message || json.error), { code: json.error, id: json.id, anketa: json.anketa, anketaSent: json.anketaSent, pending: json.pending });
+      if (json.error) throw Object.assign(new Error(json.message || json.error), { code: json.error, id: json.id, anketa: json.anketa, anketaRequired: json.anketaRequired, anketaSent: json.anketaSent, pending: json.pending });
       return json;
     } finally { /* индикатор загрузки убран — состояние видно по кнопкам («Отправляю…») */ }
   }
@@ -121,6 +121,7 @@
         <button class="btn" onclick="location.reload()">Обновить</button></div>`;
       return;
     }
+    const REQ = e.anketaRequired || [];
     const field = q => {
       const [key, label, type] = q;
       if (type.startsWith('select:')) return `<div class="choice"><input type="hidden" name="${key}">${type.slice(7).split('|').map(o => `<button type="button" data-v="${esc(o)}">${esc(o)}</button>`).join('')}</div>`;
@@ -130,8 +131,8 @@
     };
     $('main').innerHTML = `<form class="card anketa" id="anketaForm" autocomplete="off">
       <h2>Анкета перед стартом</h2>
-      <div class="muted" style="margin-top:4px">Заполните до начала — тренер по ней рассчитает ваш калораж. Ответы увидит только тренер.</div>
-      ${e.anketa.map(sec => `<h3>${esc(sec[0])}</h3>` + sec[1].map(q => `<div class="fld"><div class="lbl">${esc(q[1])}</div>${field(q)}</div>`).join('')).join('')}
+      <div class="muted" style="margin-top:4px">Поля со звёздочкой <span class="req">*</span> обязательные — по ним считается ваш калораж. Заполните до начала — тренер по ней рассчитает ваш калораж. Ответы увидит только тренер.</div>
+      ${e.anketa.map(sec => `<h3>${esc(sec[0])}</h3>` + sec[1].map(q => `<div class="fld" data-k="${q[0]}"><div class="lbl">${esc(q[1])}${REQ.includes(q[0]) ? ' <span class="req">*</span>' : ''}</div>${field(q)}</div>`).join('')).join('')}
       <button class="btn primary full" type="submit">Отправить анкету тренеру</button></form>`;
     // Выбор из вариантов — кнопками; повторный тап снимает выбор
     $$('#anketaForm .choice').forEach(box => box.addEventListener('click', ev => {
@@ -145,7 +146,17 @@
       ev.preventDefault();
       const fd = new FormData(ev.target), answers = {};
       fd.forEach((v, k) => { answers[k] = String(v).trim(); });
-      if (!answers.name) { toast('Укажите имя и фамилию'); return; }
+      $$('#anketaForm .fld.bad').forEach(x => x.classList.remove('bad'));
+      const empty = e.anketa.flatMap(sec => sec[1]).filter(q => REQ.includes(q[0]) && !answers[q[0]]);
+      const nums = { height: [120, 230], weight: [30, 250], age: [14, 90] };
+      const wrong = e.anketa.flatMap(sec => sec[1]).filter(q => nums[q[0]] && answers[q[0]] && !(parseFloat(String(answers[q[0]]).replace(',', '.')) >= nums[q[0]][0] && parseFloat(String(answers[q[0]]).replace(',', '.')) <= nums[q[0]][1]));
+      const badQ = empty.concat(wrong);
+      if (badQ.length) {
+        badQ.forEach(q => { const f = $('#anketaForm .fld[data-k="' + q[0] + '"]'); if (f) f.classList.add('bad'); });
+        const first = $('#anketaForm .fld[data-k="' + badQ[0][0] + '"]'); if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        toast(empty.length ? 'Заполните обязательные поля со звёздочкой' : 'Проверьте: ' + wrong.map(q => q[1].replace(/,.*$/, '')).join(', '));
+        return;
+      }
       const btn = $('button[type=submit]', ev.target);
       btn.disabled = true; btn.textContent = 'Отправляю…';
       try {
