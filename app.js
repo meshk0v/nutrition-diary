@@ -60,7 +60,7 @@
         body: JSON.stringify(Object.assign({ action, initData: inTelegram ? tg.initData : '', demo: !inTelegram }, data))
       });
       const json = await res.json();
-      if (json.error) throw Object.assign(new Error(json.message || json.error), { code: json.error, id: json.id, anketa: json.anketa, anketaRequired: json.anketaRequired, anketaSent: json.anketaSent, pending: json.pending });
+      if (json.error) throw Object.assign(new Error(json.message || json.error), { code: json.error, id: json.id, anketa: json.anketa, anketaRequired: json.anketaRequired, anketaSent: json.anketaSent, pending: json.pending, temp: json.temp });
       return json;
     } finally { /* индикатор загрузки убран — состояние видно по кнопкам («Отправляю…») */ }
   }
@@ -672,7 +672,7 @@
   function trainVal(t) { const s = String(t || '').trim().toLowerCase(); if (!s) return ''; return /^(нет|no|-|−|0)$/.test(s) ? 'Нет' : 'Да'; }
 
   /* ---------- FatSecret: цифры дня по ссылке экспорта ---------- */
-  let fsData = null, fsTimer = null, fsReq = 0, fsBusy = false, manualForEdit = false;
+  let fsPending = false, fsData = null, fsTimer = null, fsReq = 0, fsBusy = false, manualForEdit = false;
   const fsHowTo = '<div class="fs-how">Где взять: FatSecret → <b>Дневник</b> → ⋯ → <b>Экспорт</b> → скопировать ссылку и вставить сюда.</div>';
   // Поля калорий/БЖУ — только когда есть скриншоты, а рабочей ссылки нет. Скриншоты не нужны, если ссылка сработала.
   function updateManual() {
@@ -696,7 +696,7 @@
   async function checkFs(url) {
     const box = $('#fsBox');
     url = String(url || '').trim();
-    fsData = null;
+    fsData = null; fsPending = false;
     const id = ++fsReq;
     fsBusy = false;
     if (!url) { box.innerHTML = state.fsRequired ? fsHowTo : ''; updateManual(); return; }
@@ -712,6 +712,7 @@
     } catch (err) {
       if (id !== fsReq) return;
       fsBusy = false;
+      if (err.temp) { fsPending = true; box.innerHTML = '<div class="fs-load">⏳ FatSecret сейчас не отвечает — это на его стороне. Ничего страшного: заполните остальное и нажмите «Отправить». Ссылку сохраним, отчёт уйдёт тренеру сам, как только FatSecret заработает.</div>'; updateManual(); return; }
       box.innerHTML = `<div class="fs-err">${esc(err.message)}</div>`;
       updateManual();
     }
@@ -750,10 +751,10 @@
     ['training', 'fatsecret', 'note'].forEach(k => { data[k] = String(fd.get(k) || '').trim(); });
     data.stepsTr = !!fd.get('stepsTr');
     if (fsData) { data.kcal = String(fsData.kcal); data.p = fsData.p == null ? '' : String(fsData.p); data.f = fsData.f == null ? '' : String(fsData.f); data.c = fsData.c == null ? '' : String(fsData.c); data.photos = []; }
-    if (state.fsRequired && !fsData) { toast(fsBusy ? 'Подождите, загружаю дневник из FatSecret…' : 'Вставьте ссылку на экспорт FatSecret'); return; }
-    if (!fsData && !data.photos.length && !manualForEdit) { toast(fsBusy ? 'Подождите, загружаю дневник из FatSecret…' : 'Вставьте ссылку FatSecret или приложите скриншоты'); return; }
-    if (!(parseFloat(data.kcal) > 0)) { toast('Укажите калории за день — перепишите со скриншота'); return; }
-    if (state.me.tPr && !data.p && !(await confirmAsk('Белок не указан. Отправить без него?'))) return;
+    if (state.fsRequired && !fsData && !fsPending) { toast(fsBusy ? 'Подождите, загружаю дневник из FatSecret…' : 'Вставьте ссылку на экспорт FatSecret'); return; }
+    if (!fsData && !fsPending && !data.photos.length && !manualForEdit) { toast(fsBusy ? 'Подождите, загружаю дневник из FatSecret…' : 'Вставьте ссылку FatSecret или приложите скриншоты'); return; }
+    if (!fsPending && !(parseFloat(data.kcal) > 0)) { toast('Укажите калории за день — перепишите со скриншота'); return; }
+    if (!fsPending && state.me.tPr && !data.p && !(await confirmAsk('Белок не указан. Отправить без него?'))) return;
     const btn = $('button[type=submit]', e.target);
     btn.disabled = true; btn.textContent = data.photos.length ? 'Отправляю со скриншотами…' : 'Отправляю…';
     try {
