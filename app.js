@@ -597,7 +597,7 @@
       const startedToday = state.me.start && state.me.start >= state.date;
       if (!(state.daily || {}).yesterday && !startedToday) repDay = 'yesterday';
       else {
-        $('#repDay').innerHTML = `<div class="rep-head"><div class="t">Отчёт за новый день откроется в <span>${state.reportOpenHour || 8}:00</span></div><div class="s">Сейчас ещё рано — день только начался. Отчёт за вчера уже отправлен ✓</div></div>`;
+        $('#repDay').innerHTML = `<div class="rep-head"><div class="t">Отчёт за новый день откроется в <span>${state.reportOpenHour || 8}:00</span></div><div class="s">Сейчас ещё рано — день только начался.${startedToday ? '' : ' Отчёт за вчера уже отправлен ✓'}</div></div>`;
         $('#repStatus').innerHTML = ''; $('#reportForm').innerHTML = '';
         return;
       }
