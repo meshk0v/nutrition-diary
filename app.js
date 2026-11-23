@@ -214,7 +214,9 @@
     $('#hello').textContent = 'Привет, ' + data.me.name + '!';
     $('#sub').textContent = `${DAYS[(d.getDay() + 6) % 7]}, ${d.getDate()} ${MONTHS[d.getMonth()]}` + (data.me.target ? ` · план ${fmt(data.me.target)} ккал` : '');
     $('#demoBanner').classList.toggle('hidden', !data.demo);
-    renderReport(); renderResults(); renderMenu(); renderProgress();
+    // свежие данные пришли, пока человек уже заполняет отчёт — форму не перерисовываем, иначе всё введённое сотрётся
+    if (!(repDirty && $('#reportForm').children.length)) renderReport();
+    renderResults(); renderMenu(); renderProgress();
   }
 
   function confirmAsk(text) {
@@ -577,6 +579,7 @@
 
   /* ---------- Отчёт дня (формат тренера) ---------- */
   let repDay = 'today';
+  let repDirty = false; // в форме отчёта уже что-то введено
   let repPhotos = null;
   const targetText = t => t ? t.text : '';
 
@@ -592,6 +595,7 @@
   function dayReport() { return (state.daily || {})[repDay] || null; }
 
   function renderReport() {
+    repDirty = false;
     renderPlan();
     if (state.reportOpen === false && repDay === 'today') {
       const startedToday = state.me.start && state.me.start >= state.date;
@@ -717,6 +721,8 @@
       updateManual();
     }
   }
+  $('#reportForm').addEventListener('input', () => { repDirty = true; });
+  $('#reportForm').addEventListener('click', e => { if (e.target.closest('button:not([type=submit])')) repDirty = true; });
   $('#reportForm').addEventListener('input', e => {
     if (e.target.name !== 'fatsecret') return;
     clearTimeout(fsTimer);
