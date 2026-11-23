@@ -712,7 +712,7 @@
     } catch (err) {
       if (id !== fsReq) return;
       fsBusy = false;
-      if (err.temp) { fsPending = true; box.innerHTML = '<div class="fs-load">⏳ FatSecret сейчас не отвечает — это на его стороне. Ничего страшного: заполните остальное и нажмите «Отправить». Ссылку сохраним, отчёт уйдёт тренеру сам, как только FatSecret заработает.</div>'; updateManual(); return; }
+      if (err.temp) { fsPending = true; box.innerHTML = '<div class="fs-load">⏳ FatSecret сейчас не отвечает. Заполните остальное и нажмите «Отправить отчет».</div>'; updateManual(); return; }
       box.innerHTML = `<div class="fs-err">${esc(err.message)}</div>`;
       updateManual();
     }
