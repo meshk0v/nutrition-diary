@@ -212,7 +212,8 @@
     items = (data.items || []).map(a => ({ name: a[0], type: a[1], kcal: a[2], p: a[3], f: a[4], c: a[5], portion: a[6] || 0 }));
     const d = parseDate(data.date);
     $('#hello').textContent = 'Привет, ' + data.me.name + '!';
-    $('#sub').textContent = `${DAYS[(d.getDay() + 6) % 7]}, ${d.getDate()} ${MONTHS[d.getMonth()]}` + (data.me.target ? ` · план ${fmt(data.me.target)} ккал` : '');
+    $('#sub').textContent = `${DAYS[(d.getDay() + 6) % 7]}, ${d.getDate()} ${MONTHS[d.getMonth()]}` + (data.me.target ? ` · план ${fmt(data.me.target)} ккал` : '') +
+      (data.access && data.access.to ? ` · подписка до ${parseDate(data.access.to).getDate()} ${MONTHS[parseDate(data.access.to).getMonth()]}` + (data.access.days >= 0 && data.access.days <= 7 ? ` (осталось ${data.access.days + 1} дн.)` : '') : '');
     $('#demoBanner').classList.toggle('hidden', !data.demo);
     // свежие данные пришли, пока человек уже заполняет отчёт — форму не перерисовываем, иначе всё введённое сотрётся
     if (!(repDirty && $('#reportForm').children.length)) renderReport();
