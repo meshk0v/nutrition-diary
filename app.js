@@ -315,7 +315,7 @@
   const dayMonth = s => { const d = parseDate(s); return d.getDate() + ' ' + MONTHS[d.getMonth()]; };
   const ymdAdd = (s, n) => { const d = parseDate(s); d.setDate(d.getDate() + n); return ymd(d); };
   const mondayYmd = s => { const d = parseDate(s); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return ymd(d); };
-  let aiRes = null, aiStart = null, aiWeeks = 1, aiDay = 0;
+  let aiRes = null, aiStart = null, aiWeeks = 1, aiDay = 0, aiBatch = 0;
 
   function renderAiBox() {
     const a = state.ai;
@@ -336,9 +336,12 @@
     $('#aiMenuBody').innerHTML = `
       <label class="f-lbl">Что вы хотите есть?</label>
       <textarea id="aiWishes" class="grow" rows="4" placeholder="Например: гречка с курицей, сырники на завтрак, рыба на ужин, иногда паста. Не ем молоко.">${esc(wishes || '')}</textarea>
+      <label class="f-lbl" style="margin-top:12px">Как часто готовить?</label>
+      <div class="seg" id="aiBatchSeg">${[[0, 'Каждый день'], [2, 'Раз в 2 дня'], [3, 'Раз в 3 дня']].map(([n, t]) => `<button data-b="${n}" class="${aiBatch === n ? 'on' : ''}">${t}</button>`).join('')}</div>
       <div class="muted" style="margin:6px 0 12px">ИИ составит меню на неделю под ваш калораж ${fmt(state.me.target)} ккал. Попыток на сегодня: ${state.ai.left}</div>
       <button class="btn primary full" id="aiGo">Составить меню</button>`;
-    $('#aiGo').onclick = () => aiRun({ wishes: $('#aiWishes').value });
+    $('#aiBatchSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; aiBatch = +b.dataset.b; $$('#aiBatchSeg button').forEach(x => x.classList.toggle('on', x === b)); haptic(); };
+    $('#aiGo').onclick = () => aiRun({ wishes: $('#aiWishes').value, batch: aiBatch });
   }
 
   async function aiRun(data) {

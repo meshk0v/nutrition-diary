@@ -458,7 +458,7 @@
     btn.disabled = true; btn.textContent = 'ИИ составляет меню… (до минуты)';
     $('#aiResult').innerHTML = '';
     try {
-      const s = await api('adm_ai_generate', { tier: $('#aiTier').value, week: aiPick[0], comment: $('#aiComment').value, prev: fix ? aiLast : '', fix: fix || '' });
+      const s = await api('adm_ai_generate', { tier: $('#aiTier').value, week: aiPick[0], comment: $('#aiComment').value, batch: aiBatch, prev: fix ? aiLast : '', fix: fix || '' });
       let r = null;
       for (let i = 0; i < 100 && !r; i++) {
         await new Promise(res => setTimeout(res, 3000));
@@ -474,6 +474,8 @@
     finally { btn.disabled = false; btn.textContent = old; }
   }
   $('#aiGen').addEventListener('click', e => aiGenerate(e.currentTarget, ''));
+  let aiBatch = 0;
+  $('#aiBatchSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; aiBatch = +b.dataset.b; $$('#aiBatchSeg button').forEach(x => x.classList.toggle('on', x === b)); haptic(); });
   $('#aiFixGo').addEventListener('click', e => {
     const fix = $('#aiFix').value.trim();
     if (!fix) return toast('Напишите, что поправить');
