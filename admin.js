@@ -467,10 +467,9 @@
       }
       if (!r) throw new Error('ИИ не успел ответить — попробуйте ещё раз');
       aiLast = r.text;
-      $('#aiText').value = r.text;
       $('#aiFix').value = '';
       $('#aiFixBox').classList.remove('hidden');
-      $('#aiImport').click();
+      await aiShowPreview(r.text);
     } catch (e) { toast('⚠️ ' + (e.message || 'Ошибка')); }
     finally { btn.disabled = false; btn.textContent = old; }
   }
@@ -499,33 +498,6 @@
     else { aiPick = aiPick.filter(x => x !== 'base'); aiPick = aiPick.includes(w) ? aiPick.filter(x => x !== w) : aiPick.concat(w); }
     renderAiPeriods();
   });
-  async function copyText(text) {
-    try { await navigator.clipboard.writeText(text); return true; } catch (e) {}
-    const ta = document.createElement('textarea');
-    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
-    document.body.appendChild(ta); ta.select();
-    let ok = false; try { ok = document.execCommand('copy'); } catch (e) {}
-    ta.remove(); return ok;
-  }
-  $('#aiPrompt').addEventListener('click', async e => {
-    if (!aiPick.length) return toast('Выберите, на какое время назначить меню');
-    const r = await busy(e.currentTarget, 'Генерирую…', () => api('adm_ai_prompt', { tier: $('#aiTier').value, week: aiPick[0], comment: $('#aiComment').value }));
-    if (!r) return;
-    // текст — в отдельное поле (не в поле для ответа ИИ) и кнопка «Скопировать»: копирование должно идти по нажатию пользователя
-    let box = $('#aiPromptOut');
-    if (!box) { box = document.createElement('div'); box.id = 'aiPromptOut'; box.className = 'ai-res ok'; $('#aiPrompt').insertAdjacentElement('afterend', box); }
-    box.innerHTML = `<b>Шаг 1. Скопируйте этот текст и вставьте в ИИ</b>
-      <textarea class="f-in" id="aiPromptText" rows="6" readonly style="margin:8px 0"></textarea>
-      <button class="btn primary full" id="aiPromptCopy" type="button">📋 Скопировать</button>`;
-    $('#aiPromptText').value = r.text;
-    $('#aiPromptCopy').onclick = () => {
-      const ta = $('#aiPromptText'); ta.focus(); ta.select(); ta.setSelectionRange(0, ta.value.length);
-      let ok = false; try { ok = document.execCommand('copy'); } catch (err) {}
-      if (ok) { toast('Скопировано! Теперь откройте ИИ и вставьте'); haptic('ok'); return; }
-      if (navigator.clipboard) navigator.clipboard.writeText(r.text).then(() => { toast('Скопировано! Теперь откройте ИИ и вставьте'); haptic('ok'); }, () => toast('Текст выделен — нажмите «Копировать» в меню телефона'));
-      else toast('Текст выделен — нажмите «Копировать» в меню телефона');
-    };
-  });
   // «Отменить последнюю загрузку»: возвращает прежние меню и удаляет созданные
   function renderAiUndo() {
     const box = $('#aiUndo');
@@ -541,17 +513,11 @@
   }
   const aiLi = a => '<ul>' + a.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>';
   function aiProblems(r) {
-    $('#aiResult').innerHTML = `<div class="ai-res bad"><b>Ничего не записано</b> — в ответе ИИ нужно поправить:${aiLi(r.problems)}
-      <button class="link" id="aiCopyProblems">📋 Скопировать список для ИИ</button></div>`;
-    $('#aiCopyProblems').onclick = () => copyText('Исправь и пришли ответ целиком в том же формате:\n- ' + r.problems.join('\n- ')).then(() => toast('Скопировано'));
+    $('#aiResult').innerHTML = `<div class="ai-res bad"><b>Ничего не записано</b> — в меню нашлись ошибки:${aiLi(r.problems)}Нажмите «Составить меню» ещё раз.</div>`;
   }
   // Шаг 1: показываем, что будет добавлено. Шаг 2 (кнопка «Записать») — реальная загрузка.
-  $('#aiImport').addEventListener('click', async e => {
-    const text = $('#aiText').value.trim();
-    if (!text) return toast('Вставьте ответ ИИ');
-    if (!aiPick.length) return toast('Выберите, на какое время назначить меню');
-    const p = await busy(e.currentTarget, 'Проверяю…', () => api('adm_ai_preview', { text, all: $('#aiTier').value === 'all', weeks: aiPick, tier: $('#aiTier').value }));
-    if (!p) return;
+  async function aiShowPreview(text) {
+    const p = await api('adm_ai_preview', { text, all: $('#aiTier').value === 'all', weeks: aiPick, tier: $('#aiTier').value });
     if (!p.ok) return aiProblems(p);
     const first = p.periods[0];
     const dayHtml = i => {
@@ -579,16 +545,15 @@
     $('#aiConfirm').onclick = ev => doAiImport(ev.currentTarget, text);
     $('#aiCancel').onclick = () => { $('#aiResult').innerHTML = ''; };
     $('#aiResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  });
+  }
   async function doAiImport(btn, text) {
     const r = await busy(btn, 'Загружаю…', () => api('adm_ai_import', { text, all: $('#aiTier').value === 'all', weeks: aiPick, tier: $('#aiTier').value }));
     if (!r) return;
     const li = aiLi;
     if (!r.ok) return aiProblems(r);
     S.variants = r.variants; renderMenuList(); haptic('ok');
-    $('#aiText').value = '';
     $('#aiResult').innerHTML = `<div class="ai-res ok"><b>✅ Загружено:</b> ${r.codes.map(esc).join(', ')}<br>Новых продуктов: ${r.products}, рецептов: ${r.recipes}` +
-      (r.newProducts && r.newProducts.length ? `<br><br><b>Новые продукты — проверьте цифры (на 100 г):</b>${li(r.newProducts.map(p => p[0] + ' — ' + p[1] + ' ккал, Б ' + p[2] + ', Ж ' + p[3] + ', У ' + p[4]))}` : '') + +
+      (r.newProducts && r.newProducts.length ? `<br><br><b>Новые продукты — проверьте цифры (на 100 г):</b>${li(r.newProducts.map(p => p[0] + ' — ' + p[1] + ' ккал, Б ' + p[2] + ', Ж ' + p[3] + ', У ' + p[4]))}` : '') +
       (r.scaled ? `<br>Пересчитано на другие калоражи: ${r.scaled.created} меню` + (r.scaled.skipped ? ` (уже были, не менялись: ${r.scaled.skipped})` : '') : '') +
       (r.warnings.length ? `<br><br>⚠️ Проверьте:${li(r.warnings)}` : '') +
       `<br><button class="link" id="aiOpen">Открыть меню →</button></div>`;
