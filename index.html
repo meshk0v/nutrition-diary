@@ -7,9 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="app.css?v=1795541552">
-  <script src="https://telegram.org/js/telegram-web-app.js?v=1795541552"></script>
-  <script src="config.js?v=1795541552"></script>
+  <link rel="stylesheet" href="app.css?v=1795541697">
+  <script src="https://telegram.org/js/telegram-web-app.js?v=1795541697"></script>
+  <script src="config.js?v=1795541697"></script>
 </head>
 <body class="booting">
   <div class="boot" id="boot"><div class="spin" id="bootSpin"></div></div>
@@ -96,8 +96,18 @@
         <div class="q-title">✨ Своё меню</div>
         <div class="top-right"><button class="help-btn ai-q hidden" id="aiPrefsBtn" aria-label="Что я о вас помню">?</button><button class="close" data-close>✕</button></div>
       </div>
-      <div id="aiPrefsBox" class="ai-form ai-prefs hidden"></div>
       <div id="aiMenuBody" class="ai-form"></div>
+    </div>
+  </div>
+
+  <!-- Что ИИ помнит о вкусах участника (поверх «Своего меню») -->
+  <div class="pop hidden" id="aiPrefsPop">
+    <div class="pop-card ai-form">
+      <div class="sheet-top">
+        <div class="q-title">Что я о вас помню</div>
+        <button class="close" id="aiPrefsClose">✕</button>
+      </div>
+      <div id="aiPrefsBody"></div>
     </div>
   </div>
 
@@ -117,6 +127,6 @@
   </div>
 
   <div class="toast hidden" id="toast"></div>
-  <script src="app.js?v=1795541552"></script>
+  <script src="app.js?v=1795541697"></script>
 </body>
 </html>

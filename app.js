@@ -246,7 +246,7 @@
     if (tg && tg.BackButton) { tg.BackButton.show(); }
   }
   function closeSheets() {
-    $$('.sheet').forEach(s => s.classList.add('hidden'));
+    $$('.sheet, .pop').forEach(s => s.classList.add('hidden'));
     unlockScroll();
     if (tg && tg.BackButton) tg.BackButton.hide();
   }
@@ -323,7 +323,7 @@
     $('#aiMenuBox').innerHTML = a.personal
       ? `<div class="card ai-box"><div>✨ Своё меню до ${dayMonth(a.personal.until)}</div><div class="row"><button class="link" id="aiOpenBtn">Составить новое</button><button class="link muted-link" id="aiCancelBtn">Вернуть меню тренера</button></div></div>`
       : `<button class="btn full ai-open" id="aiOpenBtn">✨ Составить своё меню с ИИ</button>`;
-    $('#aiOpenBtn').onclick = () => { aiRes = null; $('#aiPrefsBox').classList.add('hidden'); renderAiForm(); openSheet('#aiMenuSheet'); };
+    $('#aiOpenBtn').onclick = () => { aiRes = null; renderAiForm(); openSheet('#aiMenuSheet'); };
     if ($('#aiCancelBtn')) $('#aiCancelBtn').onclick = async e => {
       if (!(await confirmAsk('Вернуть меню тренера? Своё меню перестанет показываться.'))) return;
       const b = e.currentTarget; b.disabled = true;
@@ -346,22 +346,24 @@
   }
 
   // «?» у крестика: что ИИ запомнил о вкусах участника (видно, только если памятка есть); можно поправить
+  // Открывается поверх окна «Своё меню»: фон темнеет и размывается; закрыть — ✕ или тап по фону
   function renderAiPrefsBtn() {
     $('#aiPrefsBtn').classList.toggle('hidden', !state.ai.prefs);
-    if (!state.ai.prefs) $('#aiPrefsBox').classList.add('hidden');
+    if (!state.ai.prefs) closeAiPrefs();
   }
+  const closeAiPrefs = () => $('#aiPrefsPop').classList.add('hidden');
+  $('#aiPrefsClose').addEventListener('click', closeAiPrefs);
+  $('#aiPrefsPop').addEventListener('click', e => { if (e.target === e.currentTarget) closeAiPrefs(); });
   $('#aiPrefsBtn').addEventListener('click', () => {
-    const box = $('#aiPrefsBox');
-    if (!box.classList.contains('hidden')) { box.classList.add('hidden'); return; }
-    box.innerHTML = `<div class="muted">Что я о вас помню — учту в следующих меню. Можно исправить или стереть.</div>
-      <textarea id="aiPrefs" class="grow" rows="3">${esc(state.ai.prefs)}</textarea>
-      <button class="link" id="aiPrefsSave">Сохранить</button>`;
-    box.classList.remove('hidden'); haptic();
+    $('#aiPrefsBody').innerHTML = `<div class="muted">Учту в следующих меню. Можно исправить или стереть.</div>
+      <textarea id="aiPrefs" class="grow" rows="4">${esc(state.ai.prefs)}</textarea>
+      <button class="btn primary full" id="aiPrefsSave" style="margin-top:10px">Сохранить</button>`;
+    $('#aiPrefsPop').classList.remove('hidden'); haptic();
     $('#aiPrefsSave').onclick = async e => {
       const b = e.currentTarget; b.disabled = true;
       try {
         const r = await api('ai_prefs_save', { prefs: $('#aiPrefs').value });
-        state.ai.prefs = r.prefs; saveCache(); box.classList.add('hidden'); renderAiPrefsBtn(); toast('Сохранено'); haptic('ok');
+        state.ai.prefs = r.prefs; saveCache(); closeAiPrefs(); renderAiPrefsBtn(); toast('Сохранено'); haptic('ok');
       } catch (err) { toast('⚠️ ' + err.message); b.disabled = false; }
     };
   });
