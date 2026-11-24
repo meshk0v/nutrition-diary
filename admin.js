@@ -448,18 +448,8 @@
     $('#aiResult').innerHTML = '';
     $('#aiFixBox').classList.add('hidden');
     renderAiUndo();
-    renderAiUsage();
     openSheet('#aiSheet');
   });
-  // Расход ИИ: сегодня / месяц / всего (токены и $ по данным OpenRouter)
-  async function renderAiUsage() {
-    try {
-      const u = await api('adm_ai_usage', {});
-      const f = x => `$${Number(x.cost).toFixed(x.cost < 1 ? 3 : 2)} · ${fmt(x.n)} запр. · ${fmt(Math.round(x.tokens / 1000))} тыс. токенов`;
-      $('#aiUsage').innerHTML = u.enabled ? `Расход ИИ — сегодня: ${f(u.today)}<br>за месяц: ${f(u.month)}<br>всего: ${f(u.all)}` +
-        (u.top.length ? `<br>Больше всех за месяц: ${u.top.map(t => esc(t.who) + ' $' + Number(t.cost).toFixed(3)).join(', ')}` : '') : '';
-    } catch (e) { $('#aiUsage').innerHTML = ''; }
-  }
   // «Составить меню»: ИИ на сервере → готовый текст → тот же предпросмотр, что и при ручной вставке
   let aiLast = '';
   async function aiGenerate(btn, fix) {
@@ -481,7 +471,6 @@
       $('#aiFix').value = '';
       $('#aiFixBox').classList.remove('hidden');
       $('#aiImport').click();
-      renderAiUsage();
     } catch (e) { toast('⚠️ ' + (e.message || 'Ошибка')); }
     finally { btn.disabled = false; btn.textContent = old; }
   }
