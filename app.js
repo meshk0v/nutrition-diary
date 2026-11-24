@@ -339,7 +339,7 @@
       ${state.ai.prefs ? `<label class="f-lbl" style="margin-top:12px">Что я о вас помню</label>
       <textarea id="aiPrefs" class="grow" rows="2">${esc(state.ai.prefs)}</textarea>
       <div class="muted" style="margin-top:4px">Учту в следующих меню. Можно исправить или стереть.</div>` : ''}
-      <label class="f-lbl" style="margin-top:12px">Как часто готовить?</label>
+      <label class="f-lbl" style="margin-top:12px">Как часто вы хотите готовить?</label>
       <div class="seg" id="aiBatchSeg">${[[0, 'Каждый день'], [2, 'Раз в 2 дня'], [3, 'Раз в 3 дня']].map(([n, t]) => `<button data-b="${n}" class="${aiBatch === n ? 'on' : ''}">${t}</button>`).join('')}</div>
       <div class="muted" style="margin:6px 0 12px">ИИ составит меню на неделю под ваш калораж ${fmt(state.me.target)} ккал. Попыток на сегодня: ${state.ai.left}</div>
       <button class="btn primary full" id="aiGo">Составить меню</button>`;
