@@ -492,7 +492,7 @@
         const dd = delta(k);
         return `<div><b>${fmt(last[k], 1)}</b><small>${n.toLowerCase()}${dd != null && dd !== 0 ? ` <span class="${dd < 0 ? 'down' : 'up'}">${dd > 0 ? '+' : ''}${fmt(dd, 1)}</span>` : ''}</small></div>`;
       }).join('')}</div>` : '<h2>Замеров пока нет</h2><div class="muted" style="margin-top:4px">Раз в неделю, по воскресеньям утром, натощак.</div>';
-    // фото замеров — только в окне периода (27-й день); цифры — всегда
+    // фото замеров — только в окне периода (воскресенье 4-й недели); цифры — всегда
     const mw = state.measureWindow;
     let gate = $('#measureGate');
     const formCard = $('#measureForm').closest('.card');
