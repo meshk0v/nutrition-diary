@@ -335,13 +335,16 @@
   function renderAiForm(wishes) {
     $('#aiMenuBody').innerHTML = `
       <label class="f-lbl">Что вы хотите есть?</label>
-      <textarea id="aiWishes" class="grow" rows="4" placeholder="Например: гречка с курицей, сырники на завтрак, рыба на ужин, иногда паста. Не ем молоко.">${esc(wishes || '')}</textarea>
+      <textarea id="aiWishes" class="grow" rows="4" placeholder="Например: простое меню из продуктов, которые есть в любом магазине, и чтобы готовить было несложно. Люблю гречку с курицей и сырники. Не ем молоко.">${esc(wishes || '')}</textarea>
+      ${state.ai.prefs ? `<label class="f-lbl" style="margin-top:12px">Что я о вас помню</label>
+      <textarea id="aiPrefs" class="grow" rows="2">${esc(state.ai.prefs)}</textarea>
+      <div class="muted" style="margin-top:4px">Учту в следующих меню. Можно исправить или стереть.</div>` : ''}
       <label class="f-lbl" style="margin-top:12px">Как часто готовить?</label>
       <div class="seg" id="aiBatchSeg">${[[0, 'Каждый день'], [2, 'Раз в 2 дня'], [3, 'Раз в 3 дня']].map(([n, t]) => `<button data-b="${n}" class="${aiBatch === n ? 'on' : ''}">${t}</button>`).join('')}</div>
       <div class="muted" style="margin:6px 0 12px">ИИ составит меню на неделю под ваш калораж ${fmt(state.me.target)} ккал. Попыток на сегодня: ${state.ai.left}</div>
       <button class="btn primary full" id="aiGo">Составить меню</button>`;
     $('#aiBatchSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; aiBatch = +b.dataset.b; $$('#aiBatchSeg button').forEach(x => x.classList.toggle('on', x === b)); haptic(); };
-    $('#aiGo').onclick = () => aiRun({ wishes: $('#aiWishes').value, batch: aiBatch });
+    $('#aiGo').onclick = () => aiRun(Object.assign({ wishes: $('#aiWishes').value, batch: aiBatch }, $('#aiPrefs') ? { prefs: $('#aiPrefs').value } : {}));
   }
 
   async function aiRun(data) {
@@ -359,6 +362,7 @@
       }
       if (!r) throw new Error('ИИ не успел ответить — попробуйте ещё раз');
       aiRes = r; aiDay = 0; state.ai.draft = true;
+      if (typeof r.prefs === 'string') { state.ai.prefs = r.prefs; saveCache(); }
       renderAiResult(); haptic('ok');
     } catch (e) {
       toast('⚠️ ' + e.message);
