@@ -446,8 +446,51 @@
     renderAiPeriods();
     $('#aiTier').innerHTML = '<option value="all">Для всех калоражей (1200–3000)</option>' + S.tiers.map(t => `<option value="${t}">${t} ккал</option>`).join('');
     $('#aiResult').innerHTML = '';
+    $('#aiFixBox').classList.add('hidden');
     renderAiUndo();
+    renderAiUsage();
     openSheet('#aiSheet');
+  });
+  // Расход ИИ: сегодня / месяц / всего (токены и $ по данным OpenRouter)
+  async function renderAiUsage() {
+    try {
+      const u = await api('adm_ai_usage', {});
+      const f = x => `$${Number(x.cost).toFixed(x.cost < 1 ? 3 : 2)} · ${fmt(x.n)} запр. · ${fmt(Math.round(x.tokens / 1000))} тыс. токенов`;
+      $('#aiUsage').innerHTML = u.enabled ? `Расход ИИ — сегодня: ${f(u.today)}<br>за месяц: ${f(u.month)}<br>всего: ${f(u.all)}` +
+        (u.top.length ? `<br>Больше всех за месяц: ${u.top.map(t => esc(t.who) + ' $' + Number(t.cost).toFixed(3)).join(', ')}` : '') : '';
+    } catch (e) { $('#aiUsage').innerHTML = ''; }
+  }
+  // «Составить меню»: ИИ на сервере → готовый текст → тот же предпросмотр, что и при ручной вставке
+  let aiLast = '';
+  async function aiGenerate(btn, fix) {
+    if (!aiPick.length) return toast('Выберите, на какое время назначить меню');
+    const old = btn.textContent;
+    btn.disabled = true; btn.textContent = 'ИИ составляет меню… (до минуты)';
+    $('#aiResult').innerHTML = '';
+    try {
+      const s = await api('adm_ai_generate', { tier: $('#aiTier').value, week: aiPick[0], comment: $('#aiComment').value, prev: fix ? aiLast : '', fix: fix || '' });
+      let r = null;
+      for (let i = 0; i < 100 && !r; i++) {
+        await new Promise(res => setTimeout(res, 3000));
+        const x = await api('adm_ai_job', { job: s.job });
+        if (x.status === 'done') r = x;
+      }
+      if (!r) throw new Error('ИИ не успел ответить — попробуйте ещё раз');
+      aiLast = r.text;
+      $('#aiText').value = r.text;
+      $('#aiFix').value = '';
+      $('#aiFixBox').classList.remove('hidden');
+      $('#aiImport').click();
+      renderAiUsage();
+    } catch (e) { toast('⚠️ ' + (e.message || 'Ошибка')); }
+    finally { btn.disabled = false; btn.textContent = old; }
+  }
+  $('#aiGen').addEventListener('click', e => aiGenerate(e.currentTarget, ''));
+  $('#aiFixGo').addEventListener('click', e => {
+    const fix = $('#aiFix').value.trim();
+    if (!fix) return toast('Напишите, что поправить');
+    if (!aiLast) return toast('Сначала составьте меню');
+    aiGenerate(e.currentTarget, fix);
   });
   // Выбор периода: «Бессрочно» (основное меню) или одна/несколько недель
   let aiPick = [];
@@ -759,7 +802,7 @@
     { tab: 'menu', el: '#menuList .m-item', ic: '🗂', t: 'Какие бывают меню', x: '<b>«Основное»</b> — меню, которое работает всегда, каждую неделю.<br><b>«Неделя 24.11»</b> — меню только на одну неделю. Пока эта неделя идёт, оно главнее основного.<br><br>Процент справа — насколько меню отличается от своих калорий. Красный — сильно отличается, стоит поправить.<br><br>👉 Нажмите на меню, чтобы открыть его.' },
     { tab: 'menu', ic: '✏️', t: 'Как поменять продукт', x: 'Внутри меню сверху дни: Пн, Вт, Ср…<br><br>1. Выберите день.<br>2. Нажмите на продукт.<br>3. Поменяйте его на другой, измените граммы или удалите.<br>4. Нажмите «Сохранить».<br><br>Чтобы добавить продукт — нажмите «+ добавить ещё» под нужным приёмом пищи. Калории посчитаются сами.' },
     { tab: 'menu', el: '#newWeekBtn', ic: '➕', t: 'Новая неделя', x: 'Два способа:<br><b>Копия прошлой</b> — повторит прошлое меню, вы поменяете пару продуктов.<br><b>Пустое</b> — чистое меню, и вы сами добавите продукты по дням.<br><br>Участники получат новое меню сами.' },
-    { tab: 'menu', el: '#aiBtn', ic: '🤖', t: 'Меню от ИИ', x: 'ИИ может составить меню за вас:<br><br>1. Напишите калории и пожелания.<br>2. Нажмите «Скопировать задание для ИИ».<br>3. Вставьте его в ИИ и отправьте.<br>4. Скопируйте ответ ИИ, вставьте сюда и нажмите «Загрузить в меню».<br><br>Если ИИ ошибся — ничего не сломается. Вы увидите, что не так, и сможете отправить это обратно в ИИ.' },
+    { tab: 'menu', el: '#aiBtn', ic: '🤖', t: 'Меню от ИИ', x: 'ИИ может составить меню за вас:<br><br>1. Выберите калории и неделю, напишите пожелания.<br>2. Нажмите «Составить меню» — через минуту увидите меню, как его увидит участник.<br>3. Не нравится — напишите, что поправить. Нравится — «Записать».<br><br>Ничего не запишется, пока вы не нажмёте «Записать».' },
     { tab: 'assign', el: '.tabs button[data-tab="assign"]', ic: '🗓', t: 'Назначения', x: 'Обычно ничего делать не нужно: каждый сам получает меню под свои калории.<br><br>Сюда заходите, только если кому-то нужно <b>особое</b> меню.' },
     { tab: 'assign', el: '#tab-assign .card', ic: '🎯', t: 'Как дать особое меню', x: '1. Выберите неделю.<br>2. Выберите, кому: всем, группе или одному человеку.<br>3. Выберите меню.<br>4. Нажмите «Дать это меню».<br><br>Если человеку и группе назначено разное — человек получит своё, личное.' },
     { tab: 'assign', el: '#asList', ic: '✕', t: 'Убрать назначение', x: 'Здесь список всех особых меню.<br>Нажмите ✕ — и человек снова будет получать обычное меню под свои калории.' },

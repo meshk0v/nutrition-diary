@@ -278,6 +278,7 @@
   }
 
   function renderMenu() {
+    renderAiBox();
     const m = state.menu;
     if (!m) {
       $('#menuHead').innerHTML = '<div class="title">Меню пока не назначено</div><div class="muted">Тренер пришлёт его в бот, и оно появится здесь.</div>';
@@ -308,6 +309,93 @@
     const rb = e.target.closest('[data-recipe]');
     if (rb) openRecipe(day.meals[+rb.dataset.recipe]);
   });
+
+  /* ---------- Своё меню от ИИ ---------- */
+  // Участник пишет, что хочет есть → ИИ составляет меню на 7 дней (сервер проверяет и считает КБЖУ) → «Применить» на 1–4 недели поверх основного
+  const dayMonth = s => { const d = parseDate(s); return d.getDate() + ' ' + MONTHS[d.getMonth()]; };
+  const ymdAdd = (s, n) => { const d = parseDate(s); d.setDate(d.getDate() + n); return ymd(d); };
+  const mondayYmd = s => { const d = parseDate(s); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return ymd(d); };
+  let aiRes = null, aiStart = null, aiWeeks = 1, aiDay = 0;
+
+  function renderAiBox() {
+    const a = state.ai;
+    if (!a) { $('#aiMenuBox').innerHTML = ''; return; }
+    $('#aiMenuBox').innerHTML = a.personal
+      ? `<div class="card ai-box"><div>✨ Своё меню до ${dayMonth(a.personal.until)}</div><div class="row"><button class="link" id="aiOpenBtn">Составить новое</button><button class="link muted-link" id="aiCancelBtn">Вернуть меню тренера</button></div></div>`
+      : `<button class="btn full ai-open" id="aiOpenBtn">✨ Составить своё меню с ИИ</button>`;
+    $('#aiOpenBtn').onclick = () => { aiRes = null; renderAiForm(); openSheet('#aiMenuSheet'); };
+    if ($('#aiCancelBtn')) $('#aiCancelBtn').onclick = async e => {
+      if (!(await confirmAsk('Вернуть меню тренера? Своё меню перестанет показываться.'))) return;
+      const b = e.currentTarget; b.disabled = true;
+      try { const r = await api('ai_menu_cancel'); state.menu = r.menu; state.ai = r.ai; saveCache(); renderMenu(); toast('Вернули меню тренера'); haptic('ok'); }
+      catch (err) { toast('⚠️ ' + err.message); b.disabled = false; }
+    };
+  }
+
+  function renderAiForm(wishes) {
+    $('#aiMenuBody').innerHTML = `
+      <label class="f-lbl">Что вы хотите есть?</label>
+      <textarea id="aiWishes" class="grow" rows="4" placeholder="Например: гречка с курицей, сырники на завтрак, рыба на ужин, иногда паста. Не ем молоко.">${esc(wishes || '')}</textarea>
+      <div class="muted" style="margin:6px 0 12px">ИИ составит меню на неделю под ваш калораж ${fmt(state.me.target)} ккал. Попыток на сегодня: ${state.ai.left}</div>
+      <button class="btn primary full" id="aiGo">Составить меню</button>`;
+    $('#aiGo').onclick = () => aiRun({ wishes: $('#aiWishes').value });
+  }
+
+  async function aiRun(data) {
+    const body = $('#aiMenuBody');
+    const back = aiRes;
+    body.innerHTML = `<div class="ai-wait"><div class="spin"></div><b>ИИ составляет меню…</b><div class="muted">Обычно до минуты. Не закрывайте приложение.</div></div>`;
+    try {
+      const s = await api('ai_menu_start', data);
+      state.ai.left = s.left;
+      let r = null;
+      for (let i = 0; i < 100 && !r; i++) {
+        await new Promise(res => setTimeout(res, 3000));
+        const x = await api('ai_menu_status', { job: s.job });
+        if (x.status === 'done') r = x;
+      }
+      if (!r) throw new Error('ИИ не успел ответить — попробуйте ещё раз');
+      aiRes = r; aiDay = 0; state.ai.draft = true;
+      renderAiResult(); haptic('ok');
+    } catch (e) {
+      toast('⚠️ ' + e.message);
+      if (back) { aiRes = back; renderAiResult(); } else renderAiForm(data.wishes);
+    }
+  }
+
+  function renderAiResult() {
+    const mon = mondayYmd(state.date), next = ymdAdd(mon, 7);
+    if (!aiStart || (aiStart !== mon && aiStart !== next)) aiStart = mon;
+    const d = aiRes.days[aiDay];
+    const end = ymdAdd(aiStart, 7 * aiWeeks - 1);
+    $('#aiMenuBody').innerHTML = `
+      <div class="days" id="aiDays">${aiRes.days.map((x, i) => `<button data-d="${i}" class="${i === aiDay ? 'on' : ''}">${x.day}<small>${fmt(x.total.kcal)}</small></button>`).join('')}</div>
+      <div class="day-total"><span>${esc(d.full)}</span><span>${fmt(d.total.kcal)} ккал · Б ${fmt(d.total.p)} Ж ${fmt(d.total.f)} У ${fmt(d.total.c)}</span></div>
+      ${d.meals.map(g => `<div class="meal"><div class="meal-head"><span class="when">${esc(g.name)}</span><span class="meal-kcal">${fmt(g.kcal)} ккал</span></div>` +
+        g.items.map(x => `<div class="dish-row"><div class="dish">${esc(x.item)}</div><div class="nut">${fmt(x.qty, 2)} ${esc(x.unit)}${x.grams ? ' · ≈' + fmt(x.grams) + ' г' : ''} · ${fmt(x.kcal)} ккал</div></div>`).join('') + '</div>').join('')}
+      <label class="f-lbl" style="margin-top:14px">Что поправить?</label>
+      <textarea id="aiFix" class="grow" rows="2" placeholder="Например: в среду вместо рыбы курица"></textarea>
+      <button class="btn full" id="aiFixGo" style="margin-top:8px">Поправить (попыток: ${state.ai.left})</button>
+      <label class="f-lbl" style="margin-top:16px">С какой недели</label>
+      <div class="seg" id="aiStartSeg"><button data-s="${mon}" class="${aiStart === mon ? 'on' : ''}">Эта неделя</button><button data-s="${next}" class="${aiStart === next ? 'on' : ''}">Следующая</button></div>
+      <label class="f-lbl">На сколько недель</label>
+      <div class="seg" id="aiWeeksSeg">${[1, 2, 3, 4].map(n => `<button data-w="${n}" class="${aiWeeks === n ? 'on' : ''}">${n}</button>`).join('')}</div>
+      <div class="muted" style="margin-bottom:10px">Меню будет стоять с ${dayMonth(aiStart)} по ${dayMonth(end)}, потом снова меню тренера.</div>
+      <button class="btn primary full" id="aiApply">Применить</button>`;
+    $('#aiDays').onclick = e => { const b = e.target.closest('button'); if (!b) return; aiDay = +b.dataset.d; renderAiResult(); haptic(); };
+    $('#aiStartSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; aiStart = b.dataset.s; renderAiResult(); haptic(); };
+    $('#aiWeeksSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; aiWeeks = +b.dataset.w; renderAiResult(); haptic(); };
+    $('#aiFixGo').onclick = () => { const fix = $('#aiFix').value.trim(); if (!fix) return toast('Напишите, что поправить'); aiRun({ fix }); };
+    $('#aiApply').onclick = async e => {
+      const b = e.currentTarget; b.disabled = true; b.textContent = 'Применяю…';
+      try {
+        const r = await api('ai_menu_apply', { start: aiStart, weeks: aiWeeks });
+        state.menu = r.menu; state.ai = r.ai; saveCache();
+        renderMenu.first = true; renderMenu(); closeSheets();
+        toast('Готово! Своё меню до ' + dayMonth(r.until)); haptic('ok');
+      } catch (err) { toast('⚠️ ' + err.message); b.disabled = false; b.textContent = 'Применить'; }
+    };
+  }
 
   function openRecipe(x) {
     const r = state.recipes[x.item];

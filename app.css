@@ -381,3 +381,13 @@ textarea.grow { resize: none; overflow-y: auto; line-height: 1.4; display: block
 .anketa .fld.bad .lbl { color: #e5484d; }
 .anketa .fld.bad input, .anketa .fld.bad textarea { border-color: #e5484d; }
 .anketa .fld.bad .choice { outline: 1.5px solid #e5484d; outline-offset: 3px; border-radius: 12px; }
+
+/* Своё меню от ИИ */
+.ai-open { margin-bottom: 12px; padding: 12px 14px; }
+.ai-box { display: flex; flex-direction: column; gap: 4px; font-weight: 700; }
+.ai-box .row { display: flex; gap: 16px; flex-wrap: wrap; }
+.ai-box .muted-link { color: var(--muted); }
+.ai-form .f-lbl { display: block; font-weight: 700; font-size: 14px; margin: 4px 0 6px; }
+.ai-form textarea { width: 100%; background: var(--field-bg); border: 1.5px solid var(--field-line); border-radius: 12px; padding: 10px 12px; font: inherit; font-size: 16px; color: var(--text); outline: none; }
+.ai-form textarea:focus { border-color: var(--accent); }
+.ai-wait { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; padding: 40px 12px; }
