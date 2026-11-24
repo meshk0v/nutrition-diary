@@ -391,3 +391,6 @@ textarea.grow { resize: none; overflow-y: auto; line-height: 1.4; display: block
 .ai-form textarea { width: 100%; background: var(--field-bg); border: 1.5px solid var(--field-line); border-radius: 12px; padding: 10px 12px; font: inherit; font-size: 16px; color: var(--text); outline: none; }
 .ai-form textarea:focus { border-color: var(--accent); }
 .ai-wait { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; padding: 40px 12px; }
+.ai-q { width: 26px; height: 26px; font-size: 13px; box-shadow: none; background: var(--bg); opacity: .6; }
+.ai-prefs { background: var(--bg); border-radius: 12px; padding: 10px; margin-bottom: 12px; }
+.ai-prefs textarea { margin-top: 6px; }

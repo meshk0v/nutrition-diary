@@ -323,7 +323,7 @@
     $('#aiMenuBox').innerHTML = a.personal
       ? `<div class="card ai-box"><div>✨ Своё меню до ${dayMonth(a.personal.until)}</div><div class="row"><button class="link" id="aiOpenBtn">Составить новое</button><button class="link muted-link" id="aiCancelBtn">Вернуть меню тренера</button></div></div>`
       : `<button class="btn full ai-open" id="aiOpenBtn">✨ Составить своё меню с ИИ</button>`;
-    $('#aiOpenBtn').onclick = () => { aiRes = null; renderAiForm(); openSheet('#aiMenuSheet'); };
+    $('#aiOpenBtn').onclick = () => { aiRes = null; $('#aiPrefsBox').classList.add('hidden'); renderAiForm(); openSheet('#aiMenuSheet'); };
     if ($('#aiCancelBtn')) $('#aiCancelBtn').onclick = async e => {
       if (!(await confirmAsk('Вернуть меню тренера? Своё меню перестанет показываться.'))) return;
       const b = e.currentTarget; b.disabled = true;
@@ -336,16 +336,35 @@
     $('#aiMenuBody').innerHTML = `
       <label class="f-lbl">Что вы хотите есть?</label>
       <textarea id="aiWishes" class="grow" rows="4" placeholder="Например: простое меню из продуктов, которые есть в любом магазине, и чтобы готовить было несложно. Люблю гречку с курицей и сырники. Не ем молоко.">${esc(wishes || '')}</textarea>
-      ${state.ai.prefs ? `<label class="f-lbl" style="margin-top:12px">Что я о вас помню</label>
-      <textarea id="aiPrefs" class="grow" rows="2">${esc(state.ai.prefs)}</textarea>
-      <div class="muted" style="margin-top:4px">Учту в следующих меню. Можно исправить или стереть.</div>` : ''}
       <label class="f-lbl" style="margin-top:12px">Как часто вы хотите готовить?</label>
       <div class="seg" id="aiBatchSeg">${[[0, 'Каждый день'], [2, 'Раз в 2 дня'], [3, 'Раз в 3 дня']].map(([n, t]) => `<button data-b="${n}" class="${aiBatch === n ? 'on' : ''}">${t}</button>`).join('')}</div>
       <div class="muted" style="margin:6px 0 12px">ИИ составит меню на неделю под ваш калораж ${fmt(state.me.target)} ккал. Попыток на сегодня: ${state.ai.left}</div>
       <button class="btn primary full" id="aiGo">Составить меню</button>`;
     $('#aiBatchSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; aiBatch = +b.dataset.b; $$('#aiBatchSeg button').forEach(x => x.classList.toggle('on', x === b)); haptic(); };
-    $('#aiGo').onclick = () => aiRun(Object.assign({ wishes: $('#aiWishes').value, batch: aiBatch }, $('#aiPrefs') ? { prefs: $('#aiPrefs').value } : {}));
+    $('#aiGo').onclick = () => aiRun({ wishes: $('#aiWishes').value, batch: aiBatch });
+    renderAiPrefsBtn();
   }
+
+  // «?» у крестика: что ИИ запомнил о вкусах участника (видно, только если памятка есть); можно поправить
+  function renderAiPrefsBtn() {
+    $('#aiPrefsBtn').classList.toggle('hidden', !state.ai.prefs);
+    if (!state.ai.prefs) $('#aiPrefsBox').classList.add('hidden');
+  }
+  $('#aiPrefsBtn').addEventListener('click', () => {
+    const box = $('#aiPrefsBox');
+    if (!box.classList.contains('hidden')) { box.classList.add('hidden'); return; }
+    box.innerHTML = `<div class="muted">Что я о вас помню — учту в следующих меню. Можно исправить или стереть.</div>
+      <textarea id="aiPrefs" class="grow" rows="3">${esc(state.ai.prefs)}</textarea>
+      <button class="link" id="aiPrefsSave">Сохранить</button>`;
+    box.classList.remove('hidden'); haptic();
+    $('#aiPrefsSave').onclick = async e => {
+      const b = e.currentTarget; b.disabled = true;
+      try {
+        const r = await api('ai_prefs_save', { prefs: $('#aiPrefs').value });
+        state.ai.prefs = r.prefs; saveCache(); box.classList.add('hidden'); renderAiPrefsBtn(); toast('Сохранено'); haptic('ok');
+      } catch (err) { toast('⚠️ ' + err.message); b.disabled = false; }
+    };
+  });
 
   async function aiRun(data) {
     const body = $('#aiMenuBody');
@@ -362,7 +381,7 @@
       }
       if (!r) throw new Error('ИИ не успел ответить — попробуйте ещё раз');
       aiRes = r; aiDay = 0; state.ai.draft = true;
-      if (typeof r.prefs === 'string') { state.ai.prefs = r.prefs; saveCache(); }
+      if (typeof r.prefs === 'string') { state.ai.prefs = r.prefs; saveCache(); renderAiPrefsBtn(); }
       renderAiResult(); haptic('ok');
     } catch (e) {
       toast('⚠️ ' + e.message);
