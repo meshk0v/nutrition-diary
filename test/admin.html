@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <title>Админка тренера</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css?v=1795521376">
+  <link rel="stylesheet" href="admin.css?v=1795521376">
+  <script src="https://telegram.org/js/telegram-web-app.js?v=1795521376"></script>
+  <script src="config.js?v=1795521376"></script>
+</head>
+<body class="booting">
+  <div class="boot" id="boot"><div class="spin"></div></div>
+  <div id="app">
+    <header class="top">
+      <div>
+        <div class="hello" id="hello">Админка</div>
+        <div class="sub" id="sub">Загрузка…</div>
+      </div>
+      <div class="top-right">
+        <button class="icon-btn" id="helpBtn" aria-label="Как пользоваться">?</button>
+        <button class="icon-btn" id="reloadBtn" aria-label="Обновить">⟳</button>
+      </div>
+    </header>
+
+    <main>
+      <!-- Сводка -->
+      <section class="tab active" id="tab-stats">
+        <div class="hint-line">👀 Как дела у участников сегодня</div>
+        <div class="res-cards" id="kpi"></div>
+        <div class="seg" id="statFilter">
+          <button data-f="all" class="on">Все</button>
+          <button data-f="late">Нет отчёта</button>
+          <button data-f="out">Не по норме</button>
+          <button data-f="meas">Нет замера</button>
+        </div>
+        <div id="people"></div>
+      </section>
+
+      <!-- Меню: список -->
+      <section class="tab" id="tab-menu">
+        <div class="hint-line">👇 Нажмите на меню, чтобы посмотреть или поменять продукты</div>
+        <div class="adm-actions">
+          <button class="btn" id="newWeekBtn">➕ Новая неделя</button>
+          <button class="btn" id="aiBtn">🤖 Меню от ИИ</button>
+        </div>
+        <div id="menuList"></div>
+      </section>
+
+      <!-- Меню: редактор -->
+      <section class="tab" id="tab-editor">
+        <div class="card menu-head" id="edHead"></div>
+        <div class="days" id="edDays"></div>
+        <div id="edMeals"></div>
+        <button class="btn full" id="edAddMeal">➕ Добавить продукт</button>
+        <button class="btn danger full" id="edDelete">🗑 Удалить всё это меню</button>
+      </section>
+
+      <!-- Назначения -->
+      <section class="tab" id="tab-assign">
+        <div class="card">
+          <h2>Дать особое меню</h2>
+          <div class="muted" style="margin:4px 0 10px">Обычно это не нужно: каждый сам получает меню под свои калории. Используйте, только если кому-то нужно другое меню.</div>
+          <label class="f-lbl">Неделя</label>
+          <select class="f-in" id="asWeek"></select>
+          <label class="f-lbl">На сколько недель <span class="muted">(подряд, начиная с выбранной)</span></label>
+          <select class="f-in" id="asWeeks"></select>
+          <label class="f-lbl">Кому <span class="muted">(всем, группе или одному человеку)</span></label>
+          <select class="f-in" id="asTarget"></select>
+          <label class="f-lbl">Какое меню</label>
+          <select class="f-in" id="asVariant"></select>
+          <button class="btn primary full" id="asSave" style="margin-top:14px">Дать это меню</button>
+        </div>
+        <div class="section-head"><h2>Кому уже дано особое меню</h2></div>
+        <div id="asList"></div>
+      </section>
+
+      <!-- Продукты -->
+      <section class="tab" id="tab-products">
+        <div class="hint-line">🥦 Сколько калорий в продуктах (на 100 грамм). Нажмите на продукт, чтобы исправить</div>
+        <div class="search-row">
+          <input class="f-in" id="prSearch" type="search" placeholder="Найти продукт…">
+          <button class="btn" id="prAdd">➕ Новый</button>
+        </div>
+        <div class="muted" id="prCount" style="margin:0 2px 8px"></div>
+        <div id="prList"></div>
+      </section>
+
+      <!-- Настройки -->
+      <section class="tab" id="tab-settings">
+        <div class="seg" id="setPart">
+          <button data-p="settings" class="on">Настройки</button>
+          <button data-p="texts">Тексты</button>
+          <button data-p="questions">Анкета</button>
+        </div>
+        <div id="setList"></div>
+      </section>
+    </main>
+
+    <nav class="tabs">
+      <button data-tab="stats" class="active"><span class="ic">📊</span>Сводка</button>
+      <button data-tab="menu"><span class="ic">📋</span>Меню</button>
+      <button data-tab="assign"><span class="ic">🗓</span>Назначения</button>
+      <button data-tab="products"><span class="ic">🥦</span>Продукты</button>
+      <button data-tab="settings"><span class="ic">⚙️</span>Настройки</button>
+    </nav>
+  </div>
+
+  <!-- Строка меню: правка / добавление -->
+  <div class="sheet hidden" id="rowSheet">
+    <div class="sheet-body compact">
+      <div class="sheet-top">
+        <div class="q-title" id="rowTitle">Продукт</div>
+        <button class="close" data-close>✕</button>
+      </div>
+      <label class="f-lbl">1. Что едим</label>
+      <input class="f-in" id="rowItem" placeholder="Напишите 2–3 буквы, например «греч»" autocomplete="off">
+      <div class="suggest" id="rowSuggest"></div>
+      <div class="muted" id="rowInfo"></div>
+      <label class="f-lbl">2. Когда едим</label>
+      <div class="chips" id="rowMeals"></div>
+      <div class="f-two">
+        <div><label class="f-lbl">3. Сколько</label><input class="f-in" id="rowQty" inputmode="decimal" placeholder="например, 150"></div>
+        <div><label class="f-lbl">В чём считаем</label><div class="chips" id="rowUnits"></div></div>
+      </div>
+      <div class="muted" id="rowCalc" style="margin-top:6px"></div>
+      <button class="btn primary full" id="rowSave" style="margin-top:14px">Сохранить</button>
+      <button class="btn danger full hidden" id="rowDelete" style="margin-top:8px">🗑 Убрать из меню</button>
+    </div>
+  </div>
+
+  <!-- Новая неделя -->
+  <div class="sheet hidden" id="weekSheet">
+    <div class="sheet-body compact">
+      <div class="sheet-top">
+        <div class="q-title">Новая неделя меню</div>
+        <button class="close" data-close>✕</button>
+      </div>
+      <div class="seg" id="wkMode">
+        <button data-m="copy" class="on">Копия прошлой</button>
+        <button data-m="empty">Пустое — заполню сам</button>
+      </div>
+      <div class="muted" id="wkHint"></div>
+      <label class="f-lbl">На какую неделю создать меню?</label>
+      <select class="f-in" id="wkWeek"></select>
+      <label class="f-lbl">Для какого калоража?</label>
+      <select class="f-in" id="wkTier"></select>
+      <button class="btn primary full" id="wkGo" style="margin-top:14px">Создать</button>
+      <div class="muted" id="wkMsg" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <!-- Меню от ИИ -->
+  <div class="sheet hidden" id="aiSheet">
+    <div class="sheet-body compact">
+      <div class="sheet-top">
+        <div class="q-title">🤖 Меню от ИИ</div>
+        <button class="close" data-close>✕</button>
+      </div>
+      <div class="steps"><b>Как это работает:</b><br><b>1.</b> Заполните поля и нажмите «Сгенерировать текст», потом «Скопировать».<br><b>2.</b> Откройте ИИ, вставьте текст и отправьте. ИИ сначала покажет меню — напишите «да» или что поправить.<br><b>3.</b> После «да» ИИ пришлёт текст для вставки. Скопируйте весь этот ответ и вставьте в поле внизу.<br><b>4.</b> Нажмите «Загрузить в меню».</div>
+      <label class="f-lbl">Для какого калоража составляем меню?</label><select class="f-in" id="aiTier"></select>
+      <label class="f-lbl">На какое время назначить меню? <span class="muted">(можно несколько недель)</span></label>
+      <div class="chips" id="aiPeriods" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+      <div class="ai-warn hidden" id="aiBaseWarn">⚠️ «Бессрочно» заменит основное меню этого калоража. Если загрузить по ошибке — есть кнопка «Отменить» после загрузки.</div>
+      <label class="f-lbl">Комментарий для ИИ <span class="muted">(необязательно)</span></label>
+      <textarea class="f-in" id="aiComment" rows="3" placeholder="Какое меню хотим, из каких продуктов, чего не любят, пожелания…"></textarea>
+      <button class="btn full" id="aiPrompt" style="margin-top:12px">✨ Сгенерировать текст для ИИ</button>
+      <label class="f-lbl" style="margin-top:16px">Сюда — ответ ИИ</label>
+      <textarea class="f-in grow" id="aiText" rows="5" placeholder="Нажмите и удерживайте → «Вставить»"></textarea>
+      <button class="btn primary full" id="aiImport" style="margin-top:12px">Загрузить в меню</button>
+      <div id="aiResult"></div>
+      <div id="aiUndo" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <!-- Продукт справочника -->
+  <div class="sheet hidden" id="prSheet">
+    <div class="sheet-body compact">
+      <div class="sheet-top">
+        <div class="q-title" id="prTitle">Продукт</div>
+        <button class="close" data-close>✕</button>
+      </div>
+      <label class="f-lbl">Название</label>
+      <input class="f-in" id="prName">
+      <div class="muted">Цифры на 100 грамм — посмотрите на упаковке или в FatSecret</div>
+      <div class="f-four">
+        <div><label class="f-lbl">Калории</label><input class="f-in" id="prKcal" inputmode="decimal"></div>
+        <div><label class="f-lbl">Белки</label><input class="f-in" id="prP" inputmode="decimal"></div>
+        <div><label class="f-lbl">Жиры</label><input class="f-in" id="prF" inputmode="decimal"></div>
+        <div><label class="f-lbl">Углеводы</label><input class="f-in" id="prC" inputmode="decimal"></div>
+      </div>
+      <label class="f-lbl">Сколько весит 1 штука, г <span class="muted">(только для яиц, фруктов и т. п.; можно пусто)</span></label>
+      <input class="f-in" id="prPiece" inputmode="decimal">
+      <div class="muted" id="prCheck" style="margin-top:6px"></div>
+      <button class="btn primary full" id="prSave" style="margin-top:14px">Сохранить</button>
+    </div>
+  </div>
+
+  <!-- Карточка участника -->
+  <div class="sheet hidden" id="personSheet">
+    <div class="sheet-body">
+      <div class="sheet-top">
+        <div class="q-title" id="psName"></div>
+        <button class="close" data-close>✕</button>
+      </div>
+      <div id="psBody" class="ps-body"></div>
+    </div>
+  </div>
+
+  <!-- Одна настройка -->
+  <div class="sheet hidden" id="setSheet">
+    <div class="sheet-body compact">
+      <div class="sheet-top">
+        <div class="q-title" id="stTitle"></div>
+        <button class="close" data-close>✕</button>
+      </div>
+      <div class="muted" id="stHint" style="margin-bottom:12px"></div>
+      <div id="stBody"></div>
+      <button class="btn primary full" id="stSave" style="margin-top:16px">Сохранить</button>
+    </div>
+  </div>
+
+  <!-- Текст сообщения / вопрос анкеты -->
+  <div class="sheet hidden" id="textSheet">
+    <div class="sheet-body compact">
+      <div class="sheet-top">
+        <div class="q-title" id="txTitle"></div>
+        <button class="close" data-close>✕</button>
+      </div>
+      <div class="steps" id="txHelp"></div>
+      <textarea class="f-in" id="txText" rows="8" style="margin-top:12px"></textarea>
+      <button class="btn primary full" id="txSave" style="margin-top:12px">Сохранить</button>
+      <button class="btn full" id="txReset" style="margin-top:8px">↩︎ Вернуть как было</button>
+    </div>
+  </div>
+
+  <!-- Подтверждение -->
+  <div class="sheet hidden" id="confirmSheet">
+    <div class="sheet-body compact">
+      <div class="q-title" id="cfText"></div>
+      <div class="muted" id="cfSub" style="margin:6px 0 14px"></div>
+      <button class="btn danger full" id="cfYes">Удалить</button>
+      <button class="btn full" data-close style="margin-top:8px">Отмена</button>
+    </div>
+  </div>
+
+  <!-- Обучение: подсветка по шагам -->
+  <div class="tour hidden" id="tour">
+    <div class="tour-spot" id="tourSpot"></div>
+    <div class="tour-card" id="tourCard">
+      <div class="tour-ic" id="tourIc"></div>
+      <div class="tour-t" id="tourT"></div>
+      <div class="tour-x" id="tourX"></div>
+      <div class="tour-nav">
+        <div class="tour-dots" id="tourDots"></div>
+        <button class="tour-skip" id="tourBack">Назад</button>
+        <button class="tour-skip" id="tourSkip">Пропустить</button>
+        <button class="btn primary" id="tourNext">Далее</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast hidden" id="toast"></div>
+  <script src="admin.js?v=1795521376"></script>
+</body>
+</html>
