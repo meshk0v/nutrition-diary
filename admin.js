@@ -454,9 +454,10 @@
   let aiLast = '';
   async function aiGenerate(btn, fix) {
     if (!aiPick.length) return toast('Выберите, на какое время назначить меню');
-    const old = btn.textContent;
-    btn.disabled = true; btn.textContent = 'ИИ составляет меню… (до минуты)';
-    $('#aiResult').innerHTML = '';
+    btn.disabled = true;
+    // ожидание — как у участника в «Своём меню»
+    $('#aiResult').innerHTML = `<div class="ai-wait"><div class="spin"></div><b>ИИ составляет меню…</b><div class="muted">Обычно до минуты. Не закрывайте приложение.</div></div>`;
+    $('#aiResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     try {
       const s = await api('adm_ai_generate', { tier: $('#aiTier').value, week: aiPick[0], comment: $('#aiComment').value, batch: aiBatch, prev: fix ? aiLast : '', fix: fix || '' });
       let r = null;
@@ -470,8 +471,8 @@
       $('#aiFix').value = '';
       $('#aiFixBox').classList.remove('hidden');
       await aiShowPreview(r.text);
-    } catch (e) { toast('⚠️ ' + (e.message || 'Ошибка')); }
-    finally { btn.disabled = false; btn.textContent = old; }
+    } catch (e) { $('#aiResult').innerHTML = ''; toast('⚠️ ' + (e.message || 'Ошибка')); }
+    finally { btn.disabled = false; }
   }
   $('#aiGen').addEventListener('click', e => aiGenerate(e.currentTarget, ''));
   let aiBatch = 0;
