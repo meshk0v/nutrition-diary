@@ -385,7 +385,7 @@
     box.innerHTML = (chatMsgs.length ? '' : hello) + chatMsgs.map(m => m.role === 'user'
       ? `<div class="msg me">${esc(m.text).replace(/\n/g, '<br>')}</div>`
       : `<div class="msg ai md">${md(m.text)}</div>`).join('') +
-      (chatBusy ? `<div class="msg ai typing"><span class="dots"><i></i><i></i><i></i></span> ИИ пишет ответ… обычно до минуты</div>` : '');
+      (chatBusy ? `<div class="msg ai typing"><span class="dots"><i></i><i></i><i></i></span></div>` : '');
     $('#chatLeft').textContent = state.ai ? 'Осталось сообщений сегодня: ' + state.ai.left : '';
     $('#chatSend').disabled = chatBusy;
     if (scroll === 'end') box.scrollTop = box.scrollHeight;
