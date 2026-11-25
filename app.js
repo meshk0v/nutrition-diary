@@ -339,7 +339,7 @@
 
   /* ---------- Чат с ИИ ---------- */
   // Участник пишет запрос как угодно, ИИ отвечает текстом с оформлением (Markdown); поправки — следующими сообщениями.
-  let chatMsgs = [], chatBusy = false, chatShown = '', chatTarget = '', chatTimer = null;
+  let chatMsgs = [], chatThread = null, chatThreads = [], chatBusy = false, chatShown = '', chatTarget = '', chatTimer = null;
 
   // Ответ «печатается»: сервер отдаёт уже написанное (partial), а здесь оно плавно дорисовывается по буквам
   const nearBottom = box => box.scrollHeight - box.scrollTop - box.clientHeight < 80;
@@ -399,22 +399,39 @@
   function renderChat(scroll) {
     const box = $('#chatList'), keepTop = box.scrollTop;
     const hello = `<div class="msg ai hint">Напишите, какое меню хотите — как удобно. Например: <i>«Меню на 3 дня, готовлю раз в 3 дня, без сахара»</i>.<br><br>ИИ ответит меню с граммовками, рецептами и КБЖУ${state.me.target ? ' под вашу норму ' + fmt(state.me.target) + ' ккал' : ''}. Что поправить — пишите следующим сообщением.</div>`;
-    box.innerHTML = (chatMsgs.length ? '' : hello) + chatMsgs.map(m => m.role === 'user'
+    // новый (пустой) чат: сверху — прошлые разговоры, нажать — открыть и продолжить
+    const past = chatThreads.length ? `<div class="chat-past"><div class="chat-past-h">Прошлые чаты</div>` +
+      chatThreads.map(t => `<button class="chat-past-i" data-thread="${t.id}"><span>${esc(t.title)}</span><b>${new Date(t.at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</b></button>`).join('') + `</div>` : '';
+    box.innerHTML = (chatMsgs.length || chatBusy ? '' : past + hello) + chatMsgs.map(m => m.role === 'user'
       ? `<div class="msg me">${esc(m.text).replace(/\n/g, '<br>')}</div>`
       : `<div class="msg ai md">${md(m.text)}</div>`).join('') +
       (chatBusy ? (chatShown ? `<div class="msg ai md" id="chatLive">${md(chatShown)}</div>` : `<div class="msg ai typing" id="chatLive"><span class="dots"><i></i><i></i><i></i></span></div>`) : '');
     $('#chatLeft').textContent = state.ai ? 'Осталось сообщений сегодня: ' + state.ai.left : '';
     $('#chatSend').disabled = chatBusy;
+    $('#chatNew').classList.toggle('hidden', !chatMsgs.length && !chatThread);
+    box.querySelectorAll('[data-thread]').forEach(b => { b.onclick = () => openThread(+b.dataset.thread); });
     if (scroll === 'keep') box.scrollTop = keepTop;
     else if (scroll === 'end') box.scrollTop = box.scrollHeight;
+    else if (scroll === 'start') box.scrollTop = 0;
     else if (scroll === 'last') { const last = box.lastElementChild; if (last) box.scrollTop = last.offsetTop - box.offsetTop - 8; }
   }
 
+  // каждый заход — новый чат; прошлые — списком сверху
   async function openChat() {
     openSheet('#aiChatSheet');
-    renderChat('end');
-    try { const r = await api('ai_chat_state'); chatMsgs = r.messages; state.ai.left = r.left; renderChat('end'); }
+    if (chatBusy) { renderChat('end'); return; }
+    chatThread = null; chatMsgs = [];
+    renderChat('start');
+    try { const r = await api('ai_chat_state'); chatThreads = r.threads || []; state.ai.left = r.left; if (!chatMsgs.length && !chatThread) renderChat('start'); }
     catch (e) { toast('⚠️ ' + e.message); }
+  }
+  async function openThread(id) {
+    if (chatBusy) return;
+    try {
+      const r = await api('ai_chat_state', { thread: id });
+      chatThread = r.thread; chatMsgs = r.messages; chatThreads = r.threads || chatThreads; state.ai.left = r.left;
+      renderChat('end'); haptic();
+    } catch (e) { toast('⚠️ ' + e.message); }
   }
 
   async function chatSend() {
@@ -423,8 +440,8 @@
     chatMsgs.push({ role: 'user', text }); ta.value = ''; autoGrow(ta);
     chatBusy = true; chatTyping(true); renderChat('end');
     try {
-      const s = await api('ai_chat_send', { text });
-      state.ai.left = s.left;
+      const s = await api('ai_chat_send', { text, thread: chatThread });
+      state.ai.left = s.left; chatThread = s.thread || chatThread;
       let r = null;
       for (let i = 0; i < 400 && !r; i++) {
         await new Promise(res => setTimeout(res, 700));
@@ -449,11 +466,8 @@
     }
   }
   $('#chatSend').addEventListener('click', chatSend);
-  $('#chatNew').addEventListener('click', async () => {
-    if (chatBusy || !chatMsgs.length) return;
-    if (!(await confirmAsk('Начать новый чат? Эта переписка удалится.'))) return;
-    try { await api('ai_chat_reset'); chatMsgs = []; renderChat('end'); haptic(); } catch (e) { toast('⚠️ ' + e.message); }
-  });
+  // «Новый чат»: ничего не удаляет — текущий разговор уходит в «Прошлые чаты»
+  $('#chatNew').addEventListener('click', () => { if (!chatBusy) { haptic(); openChat(); } });
 
   // калоражи на выбор: 1200–3500 через 50 и норма участника, если её нет в этом ряду
   function aiTiers() {
