@@ -398,3 +398,6 @@ textarea.grow { resize: none; overflow-y: auto; line-height: 1.4; display: block
 .pop-card textarea { margin-top: 8px; }
 /* выбор в окне «Своё меню» / «Меню от ИИ» — выбранное зелёным, как дни недели */
 .seg.pick button.on { background: var(--accent); color: #fff; box-shadow: none; }
+/* рецепт: заголовки блоков и «Как готовить» */
+.r-h { font-weight: 700; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 16px 0 4px; }
+.r-desc { font-size: 15px; line-height: 1.5; white-space: pre-line; }

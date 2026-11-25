@@ -450,8 +450,12 @@
       if (kcal != null) total += kcal;
       return `<div class="ing"><span>${esc(n)}</span><span class="ing-r"><b>${fmt(grams)} г</b>${kcal != null ? ` · ${fmt(kcal)} ккал` : ''}</span></div>`;
     }).join('');
-    $('#rBody').innerHTML = `<div style="margin-top:4px">${rows}</div>` +
-      (total ? `<div class="ing ing-total"><span>Итого</span><span class="ing-r"><b>${fmt(total)} ккал</b></span></div>` : '');
+    // заготовка на несколько порций — сколько продуктов брать на всю готовку
+    const batch = (r.portions || 1) > 1 ? `<div class="r-h">На всю заготовку · ${fmt(r.portions, 2)} порц.</div>` +
+      r.items.map(([n, g]) => `<div class="ing"><span>${esc(n)}</span><span class="ing-r"><b>${fmt(g)} г</b></span></div>`).join('') : '';
+    $('#rBody').innerHTML = `<div class="r-h" style="margin-top:4px">Ваша порция</div><div>${rows}</div>` +
+      (total ? `<div class="ing ing-total"><span>Итого</span><span class="ing-r"><b>${fmt(total)} ккал</b></span></div>` : '') +
+      (r.desc ? `<div class="r-h">Как готовить</div><div class="r-desc">${esc(r.desc)}</div>` : '') + batch;
     openSheet('#recipeSheet');
   }
 
