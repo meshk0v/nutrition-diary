@@ -359,6 +359,12 @@
         const rows = []; while (i < L.length && L[i].trim()[0] === '|') rows.push(cells(L[i++].trim()));
         const sep = r => r.every(c => /^:?-{2,}:?$/.test(c));
         const head = rows.length > 1 && sep(rows[1]) ? rows[0] : null, body = rows.filter((r, k) => !sep(r) && !(head && k === 0));
+        // широкая таблица (3+ колонки, например «Приём | Продукты | Как готовить | КБЖУ») — карточками: на телефоне так читается
+        if (head && head.length >= 3) {
+          out.push('<div class="md-rows">' + body.map(r => '<div class="md-row"><div class="md-row-t">' + mdInline(r[0] || '') + '</div>' +
+            r.slice(1).map((c, k) => (c ? '<div class="md-row-f"><span>' + mdInline(head[k + 1] || '') + '</span>' + mdInline(c) + '</div>' : '')).join('') + '</div>').join('') + '</div>');
+          continue;
+        }
         out.push('<div class="md-table"><table>' + (head ? '<tr>' + head.map(c => '<th>' + mdInline(c) + '</th>').join('') + '</tr>' : '') +
           body.map(r => '<tr>' + r.map(c => '<td>' + mdInline(c) + '</td>').join('') + '</tr>').join('') + '</table></div>');
         continue;
