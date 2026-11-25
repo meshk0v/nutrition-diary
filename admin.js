@@ -534,7 +534,7 @@
     };
     const per = p.periods.map(x => `<div class="pv-row"><span>${esc(x.code)}</span><b class="${x.replaces ? 'warn' : 'new'}">${x.replaces ? 'заменит существующее' : 'новое'}</b></div>`).join('');
     const extra = [
-      p.scaledNew ? `<div class="pv-row"><span>Пересчёт на другие калоражи</span><b>+${p.scaledNew} меню</b></div>` : '',
+      p.scaledNew || p.scaledReplace ? `<div class="pv-row"><span>Пересчёт на другие калоражи</span><b>${[p.scaledReplace ? 'заменит ' + p.scaledReplace : '', p.scaledNew ? 'новых ' + p.scaledNew : ''].filter(Boolean).join(', ')}</b></div>` : '',
       p.newProducts.length ? `<div class="pv-h">Новые продукты (на 100 г)</div>` + p.newProducts.map(x => `<div class="pv-row"><span>${esc(x[0])}</span><span class="muted">${x[1]} ккал · Б ${x[2]} Ж ${x[3]} У ${x[4]}</span></div>`).join('') : '',
       p.newRecipes.length ? `<div class="pv-h">Новые рецепты</div><div class="pv-text">${p.newRecipes.map(esc).join(', ')}</div>` : '',
       p.replacedRecipes.length ? `<div class="pv-h">⚠️ Рецепты заменятся новым составом</div>` + p.replacedRecipes.map(r => `<div class="pv-rec"><b>${esc(r.name)}</b><div class="pv-was"><span>Было · ${fmt(r.oldPortions, 2)} порц.</span>${esc(r.oldItems.join('; '))}</div><div class="pv-now"><span>Станет · ${fmt(r.newPortions, 2)} порц.</span>${esc(r.newItems.join('; '))}</div><div class="pv-used">${r.usedIn.length ? 'Сейчас стоит в меню (' + r.usedIn.length + '): ' + esc(r.usedIn.slice(0, 6).join(', ')) + (r.usedIn.length > 6 ? ' и ещё ' + (r.usedIn.length - 6) : '') + '.<br><b>Во всех этих меню блюдо изменится на новый состав, калории пересчитаются.</b>' : 'Пока ни в одном меню не используется.'}</div></div>`).join('') : '',
@@ -563,7 +563,7 @@
     S.variants = r.variants; renderMenuList(); haptic('ok');
     $('#aiResult').innerHTML = `<div class="ai-res ok"><b>✅ Загружено:</b> ${r.codes.map(esc).join(', ')}<br>Новых продуктов: ${r.products}, рецептов: ${r.recipes}` +
       (r.newProducts && r.newProducts.length ? `<br><br><b>Новые продукты — проверьте цифры (на 100 г):</b>${li(r.newProducts.map(p => p[0] + ' — ' + p[1] + ' ккал, Б ' + p[2] + ', Ж ' + p[3] + ', У ' + p[4]))}` : '') +
-      (r.scaled ? `<br>Пересчитано на другие калоражи: ${r.scaled.created} меню` + (r.scaled.skipped ? ` (уже были, не менялись: ${r.scaled.skipped})` : '') : '') +
+      (r.scaled ? `<br>Пересчитано на другие калоражи: новых ${r.scaled.created}` + (r.scaled.replaced ? `, заменено ${r.scaled.replaced}` : '') : '') +
       (r.warnings.length ? `<br><br>⚠️ Проверьте:${li(r.warnings)}` : '') +
       `<br><button class="link" id="aiOpen">Открыть меню →</button><br><button class="link" id="aiAgain">← Составить ещё</button></div>`;
     $('#aiOpen').onclick = () => { closeSheets(); openEditor(r.codes[0]); };
