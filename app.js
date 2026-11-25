@@ -375,7 +375,7 @@
 
   function renderChat(scroll) {
     const box = $('#chatList');
-    const hello = `<div class="msg ai hint">Напишите, какое меню хотите — как удобно. Например: <i>«Меню на 3 дня, готовлю раз в 3 дня, без сахара, хочу батончик Milky Way каждый день»</i>.<br><br>ИИ ответит меню с граммовками, рецептами и КБЖУ${state.me.target ? ' под вашу норму ' + fmt(state.me.target) + ' ккал' : ''}. Что поправить — пишите следующим сообщением.</div>`;
+    const hello = `<div class="msg ai hint">Напишите, какое меню хотите — как удобно. Например: <i>«Меню на 3 дня, готовлю раз в 3 дня, без сахара»</i>.<br><br>ИИ ответит меню с граммовками, рецептами и КБЖУ${state.me.target ? ' под вашу норму ' + fmt(state.me.target) + ' ккал' : ''}. Что поправить — пишите следующим сообщением.</div>`;
     box.innerHTML = (chatMsgs.length ? '' : hello) + chatMsgs.map(m => m.role === 'user'
       ? `<div class="msg me">${esc(m.text).replace(/\n/g, '<br>')}</div>`
       : `<div class="msg ai md">${md(m.text)}</div>`).join('') +
