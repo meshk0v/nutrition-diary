@@ -237,11 +237,14 @@
   /* ---------- Меню: список ---------- */
   function devClass(v) { return v.avgKcal && v.target && Math.abs(v.avgKcal / v.target - 1) > 0.1 ? 'bad' : 'ok'; }
   function renderMenuList() {
-    const groups = [['base', 'Обычные меню — работают всегда'], ['week', 'Меню на одну неделю'], ['other', 'Другие']];
-    const html = groups.map(([k, title]) => {
-      const vs = S.variants.filter(v => v.kind === k);
+    // группы с заметным заголовком и числом меню; своё меню участников (от ИИ) — отдельно от «Других»
+    const own = v => v.code.indexOf('Своё меню · ') === 0;
+    const groups = [['base', 'Обычные меню', 'работают каждую неделю'], ['week', 'Меню на одну неделю', 'пока идёт эта неделя, они главнее обычных'],
+      ['own', 'Своё меню участников', 'составили сами с ИИ'], ['other', 'Другие', '']];
+    const html = groups.map(([k, title, sub]) => {
+      const vs = S.variants.filter(v => (k === 'own' ? own(v) : v.kind === k && !own(v)));
       if (!vs.length) return '';
-      return `<div class="m-group">${title}</div>` + vs.map(v => `
+      return `<div class="m-group"><div class="m-group-t">${title}<span class="m-group-n">${vs.length}</span></div>${sub ? `<div class="m-group-s">${sub}</div>` : ''}</div>` + vs.map(v => `
         <button class="m-item" data-code="${esc(v.code)}">
           <span><b>${esc(v.code)}</b><small>${v.avgKcal ? 'в среднем ' + fmt(v.avgKcal) + ' ккал в день' : 'пока пустое — нажмите, чтобы заполнить'}${v.days && v.days < 7 ? ' · заполнено дней: ' + v.days + ' из 7' : ''}</small></span>
           ${v.avgKcal && v.target ? `<span class="dev ${devClass(v)}">${devClass(v) === 'ok' ? '✓ норма' : (v.avgKcal > v.target ? 'много' : 'мало') + ' на ' + Math.abs(Math.round((v.avgKcal / v.target - 1) * 100)) + '%'}</span>` : ''}
