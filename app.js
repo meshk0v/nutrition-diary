@@ -451,7 +451,7 @@
   $('#chatSend').addEventListener('click', chatSend);
   $('#chatNew').addEventListener('click', async () => {
     if (chatBusy || !chatMsgs.length) return;
-    if (!(await confirmAsk('Начать новый чат? Эта переписка удалится. Что вы любите и не едите — ИИ помнит.'))) return;
+    if (!(await confirmAsk('Начать новый чат? Эта переписка удалится.'))) return;
     try { await api('ai_chat_reset'); chatMsgs = []; renderChat('end'); haptic(); } catch (e) { toast('⚠️ ' + e.message); }
   });
 
