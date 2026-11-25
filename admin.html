@@ -7,10 +7,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="app.css?v=1795585068">
-  <link rel="stylesheet" href="admin.css?v=1795585068">
-  <script src="https://telegram.org/js/telegram-web-app.js?v=1795585068"></script>
-  <script src="config.js?v=1795585068"></script>
+  <link rel="stylesheet" href="app.css?v=1795585205">
+  <link rel="stylesheet" href="admin.css?v=1795585205">
+  <script src="https://telegram.org/js/telegram-web-app.js?v=1795585205"></script>
+  <script src="config.js?v=1795585205"></script>
 </head>
 <body class="booting">
   <div class="boot" id="boot"><div class="spin"></div></div>
@@ -76,6 +76,11 @@
         </div>
         <div class="section-head"><h2>Кому уже дано особое меню</h2></div>
         <div id="asList"></div>
+        <div id="asOwnBox" class="hidden">
+          <div class="section-head" style="margin-top:18px"><h2>Своё меню участников</h2></div>
+          <div class="muted" style="margin:-4px 0 8px">Участник сам составил меню с ИИ. ✕ — вернуть ему обычное меню.</div>
+          <div id="asOwnList"></div>
+        </div>
       </section>
 
       <!-- Продукты -->
@@ -265,6 +270,6 @@
   </div>
 
   <div class="toast hidden" id="toast"></div>
-  <script src="admin.js?v=1795585068"></script>
+  <script src="admin.js?v=1795585205"></script>
 </body>
 </html>

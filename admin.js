@@ -576,12 +576,18 @@
     $('#asTarget').innerHTML = S.targets.map(t => `<option>${esc(t)}</option>`).join('');
     $('#asVariant').innerHTML = S.variants.map(v => `<option value="${esc(v.code)}">${esc(v.code)}</option>`).join('');
     const cur = S.monday;
-    const groups = assignGroups();
-    $('#asList').innerHTML = groups.length ? groups.map((g, i) => `
+    // назначения тренера и «своё меню» участников (составлено ИИ, код «Своё меню · …») — разными блоками
+    const groups = assignGroups(), own = g => g.variant.indexOf('Своё меню · ') === 0;
+    const row = (g, i, label) => `
       <div class="as-item ${g.to < cur ? 'past' : ''}">
-        <span><b>${esc(g.target)}</b><small>${ddmm(g.from)} – ${ddmm(addDays(g.to, 6))} · ${esc(g.variant)}</small></span>
+        <span><b>${esc(g.target)}</b><small>${ddmm(g.from)} – ${ddmm(addDays(g.to, 6))}${label ? ' · ' + esc(g.variant) : ''}</small></span>
         <button class="x" data-group="${i}" aria-label="Убрать">✕</button>
-      </div>`).join('') : '<div class="empty">Назначений нет — все получают меню по калоражу</div>';
+      </div>`;
+    const trainer = groups.map((g, i) => (own(g) ? '' : row(g, i, true))).join('');
+    const mine = groups.map((g, i) => (own(g) ? row(g, i, false) : '')).join('');
+    $('#asList').innerHTML = trainer || '<div class="empty">Назначений нет — все получают меню по калоражу</div>';
+    $('#asOwnList').innerHTML = mine;
+    $('#asOwnBox').classList.toggle('hidden', !mine);
   }
   // Недели подряд с тем же человеком и тем же меню — одной строкой (например, «своё меню» участника на 4 недели)
   function assignGroups() {
@@ -601,7 +607,7 @@
     S.assignments = r.assignments; S.stats = r.stats; renderAssign(); renderStats(); haptic('ok');
     toast(r.updated && !r.added ? 'Назначение обновлено' : r.added > 1 || r.updated ? 'Назначено на недель: ' + (r.added + r.updated) : 'Назначено');
   });
-  $('#asList').addEventListener('click', e => {
+  const onAssignX = e => {
     const b = e.target.closest('[data-group]'); if (!b) return;
     const g = assignGroups()[+b.dataset.group];
     if (!g) return;
@@ -610,7 +616,9 @@
       if (!r) return;
       S.assignments = r.assignments; S.stats = r.stats; closeSheets(); renderAssign(); renderStats(); haptic('ok');
     });
-  });
+  };
+  $('#asList').addEventListener('click', onAssignX);
+  $('#asOwnList').addEventListener('click', onAssignX);
 
   /* ---------- Продукты ---------- */
   function renderProducts() {
