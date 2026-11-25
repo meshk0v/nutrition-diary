@@ -445,19 +445,22 @@
     aiPick = [S.nextMonday];
     renderAiPeriods();
     $('#aiTier').innerHTML = '<option value="all">Для всех калоражей (1200–3000)</option>' + S.tiers.map(t => `<option value="${t}">${t} ккал</option>`).join('');
-    $('#aiResult').innerHTML = '';
-    $('#aiFixBox').classList.add('hidden');
+    aiView('form');
     renderAiUndo();
     openSheet('#aiSheet');
   });
+  // Окно по шагам, как «Своё меню» у участника: настройки → ожидание → меню (поправить / записать). Видно только текущий шаг.
+  function aiView(step, html) {
+    $('#aiForm').classList.toggle('hidden', step !== 'form');
+    $('#aiResult').innerHTML = html || '';
+    const body = $('#aiSheet .sheet-body'); if (body) body.scrollTop = 0;
+  }
   // «Составить меню»: ИИ на сервере → готовый текст → тот же предпросмотр, что и при ручной вставке
   let aiLast = '';
   async function aiGenerate(btn, fix) {
     if (!aiPick.length) return toast('Выберите, на какое время назначить меню');
     btn.disabled = true;
-    // ожидание — как у участника в «Своём меню»
-    $('#aiResult').innerHTML = `<div class="ai-wait"><div class="spin"></div><b>ИИ составляет меню…</b><div class="muted">Обычно до минуты. Не закрывайте приложение.</div></div>`;
-    $('#aiResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    aiView('wait', `<div class="ai-wait"><div class="spin"></div><b>ИИ составляет меню…</b><div class="muted">Обычно до минуты. Не закрывайте приложение.</div></div>`);
     try {
       const s = await api('adm_ai_generate', { tier: $('#aiTier').value, week: aiPick[0], comment: $('#aiComment').value, batch: aiBatch, prev: fix ? aiLast : '', fix: fix || '' });
       let r = null;
@@ -468,21 +471,18 @@
       }
       if (!r) throw new Error('ИИ не успел ответить — попробуйте ещё раз');
       aiLast = r.text;
-      $('#aiFix').value = '';
-      $('#aiFixBox').classList.remove('hidden');
       await aiShowPreview(r.text);
-    } catch (e) { $('#aiResult').innerHTML = ''; toast('⚠️ ' + (e.message || 'Ошибка')); }
+      haptic('ok');
+    } catch (e) {
+      toast('⚠️ ' + (e.message || 'Ошибка'));
+      // не вышло поправить — возвращаем прежнее меню; не вышло составить — настройки
+      if (fix && aiLast) { try { await aiShowPreview(aiLast); } catch (err) { aiView('form'); } } else aiView('form');
+    }
     finally { btn.disabled = false; }
   }
   $('#aiGen').addEventListener('click', e => aiGenerate(e.currentTarget, ''));
   let aiBatch = 0;
   $('#aiBatchSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; aiBatch = +b.dataset.b; $$('#aiBatchSeg button').forEach(x => x.classList.toggle('on', x === b)); haptic(); });
-  $('#aiFixGo').addEventListener('click', e => {
-    const fix = $('#aiFix').value.trim();
-    if (!fix) return toast('Напишите, что поправить');
-    if (!aiLast) return toast('Сначала составьте меню');
-    aiGenerate(e.currentTarget, fix);
-  });
   // Выбор периода: «Бессрочно» (основное меню) или одна/несколько недель
   let aiPick = [];
   function renderAiPeriods() {
@@ -516,7 +516,7 @@
   }
   const aiLi = a => '<ul>' + a.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>';
   function aiProblems(r) {
-    $('#aiResult').innerHTML = `<div class="ai-res bad"><b>Ничего не записано</b> — в меню нашлись ошибки:${aiLi(r.problems)}Нажмите «Составить меню» ещё раз.</div>`;
+    aiView('form', `<div class="ai-res bad"><b>Ничего не записано</b> — в меню нашлись ошибки:${aiLi(r.problems)}Нажмите «Составить меню» ещё раз.</div>`);
   }
   // Шаг 1: показываем, что будет добавлено. Шаг 2 (кнопка «Записать») — реальная загрузка.
   async function aiShowPreview(text) {
@@ -537,17 +537,20 @@
       p.replacedRecipes.length ? `<div class="pv-h">⚠️ Рецепты заменятся новым составом</div>` + p.replacedRecipes.map(r => `<div class="pv-rec"><b>${esc(r.name)}</b><div class="pv-was"><span>Было · ${fmt(r.oldPortions, 2)} порц.</span>${esc(r.oldItems.join('; '))}</div><div class="pv-now"><span>Станет · ${fmt(r.newPortions, 2)} порц.</span>${esc(r.newItems.join('; '))}</div><div class="pv-used">${r.usedIn.length ? 'Сейчас стоит в меню (' + r.usedIn.length + '): ' + esc(r.usedIn.slice(0, 6).join(', ')) + (r.usedIn.length > 6 ? ' и ещё ' + (r.usedIn.length - 6) : '') + '.<br><b>Во всех этих меню блюдо изменится на новый состав, калории пересчитаются.</b>' : 'Пока ни в одном меню не используется.'}</div></div>`).join('') : '',
       p.warnings.length ? `<div class="pv-h">⚠️ Проверьте</div>` + p.warnings.map(w => `<div class="pv-text warn">${esc(w)}</div>`).join('') : ''
     ].join('');
-    $('#aiResult').innerHTML = `<div class="pv">
+    aiView('result', `<div class="pv">
       <div class="pv-top">👀 Так меню увидит участник</div>
       <div class="menu-head card"><div class="code">${esc(first.code)}</div><div class="title">Меню на ${p.tier} ккал</div><div class="muted">${p.tier} ккал в день · дней: 7</div></div>
       <div class="days" id="pvDays">${p.days.map((d, i) => `<button data-d="${i}" class="${i === 0 ? 'on' : ''}">${esc(d.day)}</button>`).join('')}</div>
       <div id="pvMeals">${dayHtml(0)}</div>
-      <div class="pv-h" style="margin-top:14px">Что будет записано</div>${per}${extra}
-      <button class="btn primary full" id="aiConfirm" style="margin-top:14px">✅ Записать в таблицу</button><button class="link" id="aiCancel" style="display:block;margin:10px auto 0">Отмена</button></div>`;
+      <label class="f-lbl" style="margin-top:14px">Что поправить?</label>
+      <textarea class="f-in" id="aiFix" rows="2" placeholder="Например: меньше рыбы, в выходные блины"></textarea>
+      <button class="btn full" id="aiFixGo" style="margin-top:8px">Поправить</button>
+      <div class="pv-h" style="margin-top:16px">Что будет записано</div>${per}${extra}
+      <button class="btn primary full" id="aiConfirm" style="margin-top:14px">✅ Записать</button><button class="link" id="aiCancel" style="display:block;margin:10px auto 0">← Изменить настройки</button></div>`);
     $('#pvDays').onclick = ev => { const b = ev.target.closest('button'); if (!b) return; document.querySelectorAll('#pvDays button').forEach(x => x.classList.toggle('on', x === b)); $('#pvMeals').innerHTML = dayHtml(+b.dataset.d); haptic(); };
     $('#aiConfirm').onclick = ev => doAiImport(ev.currentTarget, text);
-    $('#aiCancel').onclick = () => { $('#aiResult').innerHTML = ''; };
-    $('#aiResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    $('#aiCancel').onclick = () => aiView('form');
+    $('#aiFixGo').onclick = ev => { const fix = $('#aiFix').value.trim(); if (!fix) return toast('Напишите, что поправить'); aiGenerate(ev.currentTarget, fix); };
   }
   async function doAiImport(btn, text) {
     const r = await busy(btn, 'Загружаю…', () => api('adm_ai_import', { text, all: $('#aiTier').value === 'all', weeks: aiPick, tier: $('#aiTier').value }));
@@ -559,8 +562,9 @@
       (r.newProducts && r.newProducts.length ? `<br><br><b>Новые продукты — проверьте цифры (на 100 г):</b>${li(r.newProducts.map(p => p[0] + ' — ' + p[1] + ' ккал, Б ' + p[2] + ', Ж ' + p[3] + ', У ' + p[4]))}` : '') +
       (r.scaled ? `<br>Пересчитано на другие калоражи: ${r.scaled.created} меню` + (r.scaled.skipped ? ` (уже были, не менялись: ${r.scaled.skipped})` : '') : '') +
       (r.warnings.length ? `<br><br>⚠️ Проверьте:${li(r.warnings)}` : '') +
-      `<br><button class="link" id="aiOpen">Открыть меню →</button></div>`;
+      `<br><button class="link" id="aiOpen">Открыть меню →</button><br><button class="link" id="aiAgain">← Составить ещё</button></div>`;
     $('#aiOpen').onclick = () => { closeSheets(); openEditor(r.codes[0]); };
+    $('#aiAgain').onclick = () => aiView('form');
     S.undo = r.undo; renderAiUndo();
     refreshVariantsLater();
   }

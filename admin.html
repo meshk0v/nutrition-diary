@@ -7,10 +7,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="app.css?v=1795582166">
-  <link rel="stylesheet" href="admin.css?v=1795582166">
-  <script src="https://telegram.org/js/telegram-web-app.js?v=1795582166"></script>
-  <script src="config.js?v=1795582166"></script>
+  <link rel="stylesheet" href="app.css?v=1795583998">
+  <link rel="stylesheet" href="admin.css?v=1795583998">
+  <script src="https://telegram.org/js/telegram-web-app.js?v=1795583998"></script>
+  <script src="config.js?v=1795583998"></script>
 </head>
 <body class="booting">
   <div class="boot" id="boot"><div class="spin"></div></div>
@@ -160,6 +160,7 @@
         <div class="q-title">🤖 Меню от ИИ</div>
         <button class="close" data-close>✕</button>
       </div>
+      <div id="aiForm">
       <div class="steps"><b>Как это работает:</b><br><b>1.</b> Выберите калораж, неделю и напишите пожелания.<br><b>2.</b> Нажмите «Составить меню» — ИИ составит его сам (до минуты), и вы увидите, как его увидит участник.<br><b>3.</b> Если что-то не так — напишите, что поправить. Если всё хорошо — «Записать».</div>
       <label class="f-lbl">Для какого калоража составляем меню?</label><select class="f-in" id="aiTier"></select>
       <label class="f-lbl">На какое время назначить меню? <span class="muted">(можно несколько недель)</span></label>
@@ -170,13 +171,9 @@
       <label class="f-lbl">Как часто вы хотите готовить?</label>
       <div class="seg pick" id="aiBatchSeg"><button data-b="0" class="on">Каждый день</button><button data-b="2">Раз в 2 дня</button><button data-b="3">Раз в 3 дня</button></div>
       <button class="btn primary full" id="aiGen" style="margin-top:12px">Составить меню</button>
-      <div class="hidden" id="aiFixBox">
-        <label class="f-lbl" style="margin-top:12px">Что поправить?</label>
-        <textarea class="f-in" id="aiFix" rows="2" placeholder="Например: меньше рыбы, в выходные блины"></textarea>
-        <button class="btn full" id="aiFixGo" style="margin-top:8px">Поправить</button>
+      <div id="aiUndo" style="margin-top:12px"></div>
       </div>
       <div id="aiResult"></div>
-      <div id="aiUndo" style="margin-top:12px"></div>
     </div>
   </div>
 
@@ -268,6 +265,6 @@
   </div>
 
   <div class="toast hidden" id="toast"></div>
-  <script src="admin.js?v=1795582166"></script>
+  <script src="admin.js?v=1795583998"></script>
 </body>
 </html>
