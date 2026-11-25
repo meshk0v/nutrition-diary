@@ -576,11 +576,23 @@
     $('#asTarget').innerHTML = S.targets.map(t => `<option>${esc(t)}</option>`).join('');
     $('#asVariant').innerHTML = S.variants.map(v => `<option value="${esc(v.code)}">${esc(v.code)}</option>`).join('');
     const cur = S.monday;
-    $('#asList').innerHTML = S.assignments.length ? S.assignments.map(a => `
-      <div class="as-item ${a.week < cur ? 'past' : ''}">
-        <span><b>${esc(a.target)}</b><small>${ddmm(a.week)} – ${ddmm(addDays(a.week, 6))} · ${esc(a.variant)}</small></span>
-        <button class="x" data-row="${a.row}" aria-label="Убрать">✕</button>
+    const groups = assignGroups();
+    $('#asList').innerHTML = groups.length ? groups.map((g, i) => `
+      <div class="as-item ${g.to < cur ? 'past' : ''}">
+        <span><b>${esc(g.target)}</b><small>${ddmm(g.from)} – ${ddmm(addDays(g.to, 6))} · ${esc(g.variant)}</small></span>
+        <button class="x" data-group="${i}" aria-label="Убрать">✕</button>
       </div>`).join('') : '<div class="empty">Назначений нет — все получают меню по калоражу</div>';
+  }
+  // Недели подряд с тем же человеком и тем же меню — одной строкой (например, «своё меню» участника на 4 недели)
+  function assignGroups() {
+    const list = S.assignments.slice().sort((a, b) => (a.target + '|' + a.variant + '|' + a.week < b.target + '|' + b.variant + '|' + b.week ? -1 : 1));
+    const out = [];
+    list.forEach(a => {
+      const g = out[out.length - 1];
+      if (g && g.target === a.target && g.variant === a.variant && addDays(g.to, 7) === a.week) { g.to = a.week; g.rows.push(a.row); }
+      else out.push({ target: a.target, variant: a.variant, from: a.week, to: a.week, rows: [a.row] });
+    });
+    return out.sort((a, b) => (a.from < b.from ? -1 : a.from > b.from ? 1 : (a.target < b.target ? -1 : 1)));
   }
   $('#asWeek').addEventListener('change', () => weeksOptions('#asWeeks', '#asWeek'));
   $('#asSave').addEventListener('click', async e => {
@@ -590,10 +602,11 @@
     toast(r.updated && !r.added ? 'Назначение обновлено' : r.added > 1 || r.updated ? 'Назначено на недель: ' + (r.added + r.updated) : 'Назначено');
   });
   $('#asList').addEventListener('click', e => {
-    const b = e.target.closest('[data-row]'); if (!b) return;
-    const a = S.assignments.find(x => x.row === +b.dataset.row);
-    askConfirm('Убрать назначение?', a.target + ' · ' + a.variant, async btn => {
-      const r = await busy(btn, 'Убираю…', () => api('adm_unassign', { row: a.row, expect: { target: a.target, variant: a.variant } }));
+    const b = e.target.closest('[data-group]'); if (!b) return;
+    const g = assignGroups()[+b.dataset.group];
+    if (!g) return;
+    askConfirm('Убрать назначение?', g.target + ' · ' + ddmm(g.from) + ' – ' + ddmm(addDays(g.to, 6)) + ' · ' + g.variant, async btn => {
+      const r = await busy(btn, 'Убираю…', () => api('adm_unassign', { rows: g.rows, expect: { target: g.target, variant: g.variant } }));
       if (!r) return;
       S.assignments = r.assignments; S.stats = r.stats; closeSheets(); renderAssign(); renderStats(); haptic('ok');
     });
