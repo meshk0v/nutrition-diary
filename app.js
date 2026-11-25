@@ -411,7 +411,7 @@
       <div class="days" id="aiDays">${aiRes.days.map((x, i) => `<button data-d="${i}" class="${i === aiDay ? 'on' : ''}">${x.day}<small>${fmt(x.total.kcal)}</small></button>`).join('')}</div>
       <div class="day-total"><span>${esc(d.full)}</span><span>${fmt(d.total.kcal)} ккал · Б ${fmt(d.total.p)} Ж ${fmt(d.total.f)} У ${fmt(d.total.c)}</span></div>
       ${d.meals.map(g => `<div class="meal"><div class="meal-head"><span class="when">${esc(g.name)}</span><span class="meal-kcal">${fmt(g.kcal)} ккал</span></div>` +
-        g.items.map(x => `<div class="dish-row"><div class="dish">${esc(x.item)}</div><div class="nut">${fmt(x.qty, 2)} ${esc(x.unit)}${x.grams ? ' · ≈' + fmt(x.grams) + ' г' : ''} · ${fmt(x.kcal)} ккал</div></div>`).join('') + '</div>').join('')}
+        g.items.map(x => `<div class="dish-row"><div class="dish">${esc(x.item)}</div><div class="nut">${fmt(x.qty, 2)} ${esc(x.unit)}${x.grams ? ' · ≈' + fmt(x.grams) + ' г' : ''} · ${fmt(x.kcal)} ккал</div>${aiRes.recipes && aiRes.recipes[x.item] ? `<div class="row"><button class="link" data-airecipe="${esc(x.item)}" data-qty="${x.qty}" data-unit="${esc(x.unit)}">Рецепт →</button></div>` : ''}</div>`).join('') + '</div>').join('')}
       <label class="f-lbl" style="margin-top:14px">Что поправить?</label>
       <textarea id="aiFix" class="grow" rows="2" placeholder="Например: в среду вместо рыбы курица"></textarea>
       <button class="btn full" id="aiFixGo" style="margin-top:8px">Поправить (попыток: ${state.ai.left})</button>
@@ -421,6 +421,7 @@
       <div class="seg pick" id="aiWeeksSeg">${[1, 2, 3, 4].map(n => `<button data-w="${n}" class="${aiWeeks === n ? 'on' : ''}">${n}</button>`).join('')}</div>
       <div class="muted" style="margin-bottom:10px">Меню будет стоять с ${dayMonth(aiStart)} по ${dayMonth(end)}, потом снова меню тренера.</div>
       <button class="btn primary full" id="aiApply">Применить</button>`;
+    $$('[data-airecipe]').forEach(b => { b.onclick = () => openAiRecipe({ item: b.dataset.airecipe, qty: +b.dataset.qty, unit: b.dataset.unit }); });
     $('#aiDays').onclick = e => { const b = e.target.closest('button'); if (!b) return; aiDay = +b.dataset.d; renderAiResult(); haptic(); };
     $('#aiStartSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; aiStart = b.dataset.s; renderAiResult(); haptic(); };
     $('#aiWeeksSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; aiWeeks = +b.dataset.w; renderAiResult(); haptic(); };
@@ -437,11 +438,25 @@
   }
 
   function openRecipe(x) {
-    const r = state.recipes[x.item];
+    $('#rTitle').textContent = x.item;
+    $('#rBody').innerHTML = recipeHtml(x, state.recipes[x.item]);
+    openSheet('#recipeSheet');
+  }
+  // Рецепт из предпросмотра «Своего меню» — окошком поверх, меню под ним не закрывается
+  function openAiRecipe(x) {
+    const r = aiRes && aiRes.recipes && aiRes.recipes[x.item];
+    if (!r) return;
+    $('#aiRTitle').textContent = x.item;
+    $('#aiRBody').innerHTML = recipeHtml(x, r);
+    $('#aiRecipePop').classList.remove('hidden'); haptic();
+  }
+  $('#aiRClose').addEventListener('click', () => $('#aiRecipePop').classList.add('hidden'));
+  $('#aiRecipePop').addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden'); });
+
+  function recipeHtml(x, r) {
     // во сколько раз ингредиентов меньше/больше, чем в целом рецепте, при этой порции
     const portions = x.unit === 'г' && r.portion ? x.qty / r.portion : Number(x.qty) || 1;
     const k = portions / (r.portions || 1);
-    $('#rTitle').textContent = x.item;
     // Состав на порцию участника в формате тренера: «продукт — граммы — ккал» (ккал по справочнику)
     let total = 0;
     const rows = r.items.map(([n, g]) => {
@@ -453,10 +468,9 @@
     // заготовка на несколько порций — сколько продуктов брать на всю готовку
     const batch = (r.portions || 1) > 1 ? `<div class="r-h">На всю заготовку · ${fmt(r.portions, 2)} порц.</div>` +
       r.items.map(([n, g]) => `<div class="ing"><span>${esc(n)}</span><span class="ing-r"><b>${fmt(g)} г</b></span></div>`).join('') : '';
-    $('#rBody').innerHTML = `<div class="r-h" style="margin-top:4px">Ваша порция</div><div>${rows}</div>` +
+    return `<div class="r-h" style="margin-top:4px">Ваша порция</div><div>${rows}</div>` +
       (total ? `<div class="ing ing-total"><span>Итого</span><span class="ing-r"><b>${fmt(total)} ккал</b></span></div>` : '') +
       (r.desc ? `<div class="r-h">Как готовить</div><div class="r-desc">${esc(r.desc)}</div>` : '') + batch;
-    openSheet('#recipeSheet');
   }
 
   /* ---------- Итоги (прогресс участника) ---------- */

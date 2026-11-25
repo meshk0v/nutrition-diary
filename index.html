@@ -7,9 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="app.css?v=1795586156">
-  <script src="https://telegram.org/js/telegram-web-app.js?v=1795586156"></script>
-  <script src="config.js?v=1795586156"></script>
+  <link rel="stylesheet" href="app.css?v=1795586331">
+  <script src="https://telegram.org/js/telegram-web-app.js?v=1795586331"></script>
+  <script src="config.js?v=1795586331"></script>
 </head>
 <body class="booting">
   <div class="boot" id="boot"><div class="spin" id="bootSpin"></div></div>
@@ -100,6 +100,17 @@
     </div>
   </div>
 
+  <!-- Рецепт блюда из предпросмотра «Своего меню» (поверх него) -->
+  <div class="pop hidden" id="aiRecipePop">
+    <div class="pop-card">
+      <div class="sheet-top">
+        <div class="q-title" id="aiRTitle"></div>
+        <button class="close" id="aiRClose">✕</button>
+      </div>
+      <div id="aiRBody"></div>
+    </div>
+  </div>
+
   <!-- Что ИИ помнит о вкусах участника (поверх «Своего меню») -->
   <div class="pop hidden" id="aiPrefsPop">
     <div class="pop-card ai-form">
@@ -127,6 +138,6 @@
   </div>
 
   <div class="toast hidden" id="toast"></div>
-  <script src="app.js?v=1795586156"></script>
+  <script src="app.js?v=1795586331"></script>
 </body>
 </html>
