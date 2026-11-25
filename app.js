@@ -398,7 +398,7 @@
 
   function renderChat(scroll) {
     const box = $('#chatList'), keepTop = box.scrollTop;
-    const hello = `<div class="msg ai hint">Напишите, какое меню хотите — как удобно. Например: <i>«Меню на 3 дня, готовлю раз в 3 дня, без сахара»</i>.<br><br>ИИ ответит меню с граммовками, рецептами и КБЖУ${state.me.target ? ' под вашу норму ' + fmt(state.me.target) + ' ккал' : ''}. Что поправить — пишите следующим сообщением.</div>`;
+    const hello = `<div class="msg ai hint">Напишите, какое меню хотите — как удобно. Например: <i>«Меню на 3 дня, готовлю раз в 3 дня, без сахара»</i>.</div>`;
     // новый (пустой) чат: сверху — прошлые разговоры, нажать — открыть и продолжить
     const past = chatThreads.length ? `<div class="chat-past"><div class="chat-past-h">Прошлые чаты</div>` +
       chatThreads.map(t => `<button class="chat-past-i" data-thread="${t.id}"><span>${esc(t.title)}</span><b>${new Date(t.at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</b></button>`).join('') + `</div>` : '';
