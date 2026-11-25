@@ -320,10 +320,15 @@
   function renderAiBox() {
     const a = state.ai;
     if (!a) { $('#aiMenuBox').innerHTML = ''; return; }
-    $('#aiMenuBox').innerHTML = a.personal
+    if (a.mode === 'chat') {
+      // режим «Чат»: одна кнопка; если раньше ставили «своё меню» — можно вернуть меню тренера
+      $('#aiMenuBox').innerHTML = (a.personal ? `<div class="card ai-box"><div>✨ Своё меню до ${dayMonth(a.personal.until)}</div><div class="row"><button class="link muted-link" id="aiCancelBtn">Вернуть меню тренера</button></div></div>` : '') +
+        `<button class="btn full ai-open" id="aiChatBtn">💬 Составить меню с ИИ</button>`;
+      $('#aiChatBtn').onclick = openChat;
+    } else $('#aiMenuBox').innerHTML = a.personal
       ? `<div class="card ai-box"><div>✨ Своё меню до ${dayMonth(a.personal.until)}</div><div class="row"><button class="link" id="aiOpenBtn">Составить новое</button><button class="link muted-link" id="aiCancelBtn">Вернуть меню тренера</button></div></div>`
       : `<button class="btn full ai-open" id="aiOpenBtn">✨ Составить своё меню с ИИ</button>`;
-    $('#aiOpenBtn').onclick = () => { aiRes = null; renderAiForm(); openSheet('#aiMenuSheet'); };
+    if ($('#aiOpenBtn')) $('#aiOpenBtn').onclick = () => { aiRes = null; renderAiForm(); openSheet('#aiMenuSheet'); };
     if ($('#aiCancelBtn')) $('#aiCancelBtn').onclick = async e => {
       if (!(await confirmAsk('Вернуть меню тренера? Своё меню перестанет показываться.'))) return;
       const b = e.currentTarget; b.disabled = true;
@@ -331,6 +336,94 @@
       catch (err) { toast('⚠️ ' + err.message); b.disabled = false; }
     };
   }
+
+  /* ---------- Чат с ИИ ---------- */
+  // Участник пишет запрос как угодно, ИИ отвечает текстом с оформлением (Markdown); поправки — следующими сообщениями.
+  let chatMsgs = [], chatBusy = false;
+
+  // Простой и безопасный Markdown: сначала экранируем всё, потом заголовки, списки, жирный/курсив, короткие таблицы, линии
+  function mdInline(s) {
+    return s.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/(^|[\s(])\*(?!\s)([^*]+?)\*(?=[\s).,!?:;]|$)/g, '$1<i>$2</i>').replace(/`([^`]+)`/g, '<code>$1</code>');
+  }
+  function md(src) {
+    const L = esc(src).replace(/\r/g, '').split('\n'), out = [];
+    const cells = r => r.replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
+    let i = 0, m;
+    while (i < L.length) {
+      const t = L[i].trim();
+      if (!t) { i++; continue; }
+      if (/^```/.test(t)) { const buf = []; i++; while (i < L.length && !/^```/.test(L[i].trim())) buf.push(L[i++]); i++; out.push('<pre>' + buf.join('\n') + '</pre>'); continue; }
+      if ((m = /^(#{1,6})\s+(.*)$/.exec(t))) { const lv = Math.min(4, Math.max(2, m[1].length)); out.push(`<div class="md-h${lv}">${mdInline(m[2].replace(/#+$/, ''))}</div>`); i++; continue; }
+      if (/^(-{3,}|\*{3,}|_{3,})$/.test(t)) { out.push('<hr>'); i++; continue; }
+      if (t[0] === '|') {
+        const rows = []; while (i < L.length && L[i].trim()[0] === '|') rows.push(cells(L[i++].trim()));
+        const sep = r => r.every(c => /^:?-{2,}:?$/.test(c));
+        const head = rows.length > 1 && sep(rows[1]) ? rows[0] : null, body = rows.filter((r, k) => !sep(r) && !(head && k === 0));
+        out.push('<div class="md-table"><table>' + (head ? '<tr>' + head.map(c => '<th>' + mdInline(c) + '</th>').join('') + '</tr>' : '') +
+          body.map(r => '<tr>' + r.map(c => '<td>' + mdInline(c) + '</td>').join('') + '</tr>').join('') + '</table></div>');
+        continue;
+      }
+      if (/^[-*•]\s+/.test(t)) { const it = []; while (i < L.length && /^\s*[-*•]\s+/.test(L[i])) it.push(L[i++].trim().replace(/^[-*•]\s+/, '')); out.push('<ul>' + it.map(x => '<li>' + mdInline(x) + '</li>').join('') + '</ul>'); continue; }
+      if (/^\d+[.)]\s+/.test(t)) { const it = []; while (i < L.length && /^\s*\d+[.)]\s+/.test(L[i])) it.push(L[i++].trim().replace(/^\d+[.)]\s+/, '')); out.push('<ol>' + it.map(x => '<li>' + mdInline(x) + '</li>').join('') + '</ol>'); continue; }
+      if (/^&gt;\s?/.test(t)) { const it = []; while (i < L.length && /^&gt;\s?/.test(L[i].trim())) it.push(L[i++].trim().replace(/^&gt;\s?/, '')); out.push('<blockquote>' + it.map(mdInline).join('<br>') + '</blockquote>'); continue; }
+      const p = []; while (i < L.length && L[i].trim() && !/^(#{1,6}\s|[-*•]\s|\d+[.)]\s|\||```|&gt;|-{3,}$|\*{3,}$)/.test(L[i].trim())) p.push(L[i++].trim());
+      if (!p.length) { out.push('<p>' + mdInline(t) + '</p>'); i++; continue; }
+      out.push('<p>' + p.map(mdInline).join('<br>') + '</p>');
+    }
+    return out.join('');
+  }
+
+  function renderChat(scroll) {
+    const box = $('#chatList');
+    const hello = `<div class="msg ai hint">Напишите, какое меню хотите — как удобно. Например: <i>«Меню на 3 дня, готовлю раз в 3 дня, без сахара, хочу батончик Milky Way каждый день»</i>.<br><br>ИИ ответит меню с граммовками, рецептами и КБЖУ${state.me.target ? ' под вашу норму ' + fmt(state.me.target) + ' ккал' : ''}. Что поправить — пишите следующим сообщением.</div>`;
+    box.innerHTML = (chatMsgs.length ? '' : hello) + chatMsgs.map(m => m.role === 'user'
+      ? `<div class="msg me">${esc(m.text).replace(/\n/g, '<br>')}</div>`
+      : `<div class="msg ai md">${md(m.text)}</div>`).join('') +
+      (chatBusy ? `<div class="msg ai typing"><span class="dots"><i></i><i></i><i></i></span> ИИ пишет ответ… обычно до минуты</div>` : '');
+    $('#chatLeft').textContent = state.ai ? 'Осталось сообщений сегодня: ' + state.ai.left : '';
+    $('#chatSend').disabled = chatBusy;
+    if (scroll === 'end') box.scrollTop = box.scrollHeight;
+    else if (scroll === 'last') { const last = box.lastElementChild; if (last) box.scrollTop = last.offsetTop - box.offsetTop - 8; }
+  }
+
+  async function openChat() {
+    openSheet('#aiChatSheet');
+    renderChat('end');
+    try { const r = await api('ai_chat_state'); chatMsgs = r.messages; state.ai.left = r.left; renderChat('end'); }
+    catch (e) { toast('⚠️ ' + e.message); }
+  }
+
+  async function chatSend() {
+    const ta = $('#chatText'), text = ta.value.trim();
+    if (!text || chatBusy) return;
+    chatMsgs.push({ role: 'user', text }); ta.value = ''; autoGrow(ta);
+    chatBusy = true; renderChat('end');
+    try {
+      const s = await api('ai_chat_send', { text });
+      state.ai.left = s.left;
+      let r = null;
+      for (let i = 0; i < 100 && !r; i++) {
+        await new Promise(res => setTimeout(res, 3000));
+        const x = await api('ai_chat_status', { job: s.job });
+        if (x.status === 'done') r = x;
+      }
+      if (!r) throw new Error('ИИ не успел ответить — напишите ещё раз');
+      chatMsgs.push(r.message);
+      if (typeof r.prefs === 'string') state.ai.prefs = r.prefs;
+      saveCache(); haptic('ok');
+      chatBusy = false; renderChat('last');   // начало ответа — сверху, дальше читать вниз
+    } catch (e) {
+      chatBusy = false;
+      if (e.code === 'ai_limit' || e.code === 'empty') { chatMsgs.pop(); ta.value = text; }
+      renderChat('end'); toast('⚠️ ' + e.message);
+    }
+  }
+  $('#chatSend').addEventListener('click', chatSend);
+  $('#chatNew').addEventListener('click', async () => {
+    if (chatBusy || !chatMsgs.length) return;
+    if (!(await confirmAsk('Начать новый чат? Эта переписка удалится. Что вы любите и не едите — ИИ помнит.'))) return;
+    try { await api('ai_chat_reset'); chatMsgs = []; renderChat('end'); haptic(); } catch (e) { toast('⚠️ ' + e.message); }
+  });
 
   // калоражи на выбор: 1200–3500 через 50 и норма участника, если её нет в этом ряду
   function aiTiers() {

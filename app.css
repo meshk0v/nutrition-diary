@@ -406,3 +406,38 @@ textarea.grow { resize: none; overflow-y: auto; line-height: 1.4; display: block
   background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
   background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 34px; }
 .ai-form select option { background: var(--card); color: var(--text); }
+/* ---------- Чат с ИИ ---------- */
+.chat-body { gap: 8px; }
+.chat-new { font-size: 14px; }
+.chat-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 4px 2px 8px; overscroll-behavior: contain; }
+.msg { max-width: 100%; border-radius: 16px; padding: 10px 13px; font-size: 15px; line-height: 1.5; overflow-wrap: anywhere; }
+.msg.me { align-self: flex-end; max-width: 85%; background: var(--accent); color: #fff; border-bottom-right-radius: 6px; }
+.msg.ai { align-self: stretch; background: var(--bg); border-bottom-left-radius: 6px; }
+.msg.hint { color: var(--muted); }
+.msg.typing { color: var(--muted); display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.dots { display: inline-flex; gap: 4px; }
+.dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); opacity: .3; animation: dot 1.2s infinite; }
+.dots i:nth-child(2) { animation-delay: .2s; } .dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes dot { 30% { opacity: 1; transform: translateY(-2px); } }
+.chat-input { display: flex; gap: 8px; align-items: flex-end; }
+.chat-input textarea { flex: 1; min-width: 0; background: var(--field-bg); border: 1.5px solid var(--field-line); border-radius: 18px; padding: 10px 14px; font: inherit; font-size: 16px; color: var(--text); outline: none; resize: none; max-height: 30vh; }
+.chat-input textarea:focus { border-color: var(--accent); }
+.chat-send { width: 46px; height: 46px; padding: 0; border-radius: 50%; font-size: 18px; flex: none; }
+.chat-left { font-size: 12px; text-align: center; }
+/* оформление ответа ИИ */
+.md > :first-child { margin-top: 0; }
+.md p { margin: 6px 0; }
+.md .md-h2 { font-size: 18px; font-weight: 800; margin: 18px 0 6px; line-height: 1.3; }
+.md .md-h3 { font-size: 15.5px; font-weight: 800; margin: 14px 0 4px; color: var(--accent); }
+.md .md-h4 { font-size: 14.5px; font-weight: 700; margin: 10px 0 4px; }
+.md ul, .md ol { margin: 4px 0 6px; padding-left: 20px; }
+.md li { margin: 2px 0; }
+.md hr { border: 0; border-top: 1px solid var(--line); margin: 14px 0; }
+.md b { font-weight: 700; }
+.md blockquote { margin: 8px 0; padding: 6px 10px; border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 8px 8px 0; }
+.md code, .md pre { font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
+.md pre { white-space: pre-wrap; background: var(--card); padding: 8px; border-radius: 8px; }
+.md-table { overflow-x: auto; margin: 8px 0; }
+.md-table table { border-collapse: collapse; font-size: 13.5px; min-width: 100%; }
+.md-table th, .md-table td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+.md-table th { background: var(--card); font-weight: 700; }

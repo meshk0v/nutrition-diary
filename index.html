@@ -7,9 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="app.css?v=1795586331">
-  <script src="https://telegram.org/js/telegram-web-app.js?v=1795586331"></script>
-  <script src="config.js?v=1795586331"></script>
+  <link rel="stylesheet" href="app.css?v=1795588092">
+  <script src="https://telegram.org/js/telegram-web-app.js?v=1795588092"></script>
+  <script src="config.js?v=1795588092"></script>
 </head>
 <body class="booting">
   <div class="boot" id="boot"><div class="spin" id="bootSpin"></div></div>
@@ -100,6 +100,22 @@
     </div>
   </div>
 
+  <!-- Чат с ИИ о питании (режим «Чат» настройки «Своё меню от ИИ — как работает») -->
+  <div class="sheet hidden" id="aiChatSheet">
+    <div class="sheet-body chat-body">
+      <div class="sheet-top">
+        <div class="q-title">💬 Меню с ИИ</div>
+        <div class="top-right"><button class="link chat-new" id="chatNew">Новый чат</button><button class="close" data-close>✕</button></div>
+      </div>
+      <div class="chat-list" id="chatList"></div>
+      <div class="chat-input">
+        <textarea id="chatText" class="grow" rows="1" placeholder="Напишите, какое меню хотите…"></textarea>
+        <button class="btn primary chat-send" id="chatSend" aria-label="Отправить">➤</button>
+      </div>
+      <div class="muted chat-left" id="chatLeft"></div>
+    </div>
+  </div>
+
   <!-- Рецепт блюда из предпросмотра «Своего меню» (поверх него) -->
   <div class="pop hidden" id="aiRecipePop">
     <div class="pop-card">
@@ -138,6 +154,6 @@
   </div>
 
   <div class="toast hidden" id="toast"></div>
-  <script src="app.js?v=1795586331"></script>
+  <script src="app.js?v=1795588092"></script>
 </body>
 </html>
