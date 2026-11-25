@@ -444,7 +444,7 @@
     } catch (e) {
       chatTyping(false);
       chatBusy = false;
-      if (e.code === 'ai_limit' || e.code === 'empty') { chatMsgs.pop(); ta.value = text; }
+      if (e.code === 'ai_limit' || e.code === 'ai_budget' || e.code === 'empty') { chatMsgs.pop(); ta.value = text; }
       renderChat('end'); toast('⚠️ ' + e.message);
     }
   }
