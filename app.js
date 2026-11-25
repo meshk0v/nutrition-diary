@@ -339,7 +339,24 @@
 
   /* ---------- Чат с ИИ ---------- */
   // Участник пишет запрос как угодно, ИИ отвечает текстом с оформлением (Markdown); поправки — следующими сообщениями.
-  let chatMsgs = [], chatBusy = false;
+  let chatMsgs = [], chatBusy = false, chatShown = '', chatTarget = '', chatTimer = null;
+
+  // Ответ «печатается»: сервер отдаёт уже написанное (partial), а здесь оно плавно дорисовывается по буквам
+  const nearBottom = box => box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+  function chatTick() {
+    if (chatShown.length >= chatTarget.length) return;
+    const left = chatTarget.length - chatShown.length, step = Math.max(2, Math.ceil(left / 25));
+    chatShown = chatTarget.slice(0, chatShown.length + step);
+    const box = $('#chatList'), follow = nearBottom(box);
+    let live = $('#chatLive');
+    if (!live || !live.classList.contains('md')) { renderChat('keep'); live = $('#chatLive'); }
+    else live.innerHTML = md(chatShown);
+    if (follow) box.scrollTop = box.scrollHeight;
+  }
+  function chatTyping(on) {
+    clearInterval(chatTimer); chatTimer = null;
+    if (on) { chatShown = ''; chatTarget = ''; chatTimer = setInterval(chatTick, 30); }
+  }
 
   // Простой и безопасный Markdown: сначала экранируем всё, потом заголовки, списки, жирный/курсив, короткие таблицы, линии
   function mdInline(s) {
@@ -380,15 +397,16 @@
   }
 
   function renderChat(scroll) {
-    const box = $('#chatList');
+    const box = $('#chatList'), keepTop = box.scrollTop;
     const hello = `<div class="msg ai hint">Напишите, какое меню хотите — как удобно. Например: <i>«Меню на 3 дня, готовлю раз в 3 дня, без сахара»</i>.<br><br>ИИ ответит меню с граммовками, рецептами и КБЖУ${state.me.target ? ' под вашу норму ' + fmt(state.me.target) + ' ккал' : ''}. Что поправить — пишите следующим сообщением.</div>`;
     box.innerHTML = (chatMsgs.length ? '' : hello) + chatMsgs.map(m => m.role === 'user'
       ? `<div class="msg me">${esc(m.text).replace(/\n/g, '<br>')}</div>`
       : `<div class="msg ai md">${md(m.text)}</div>`).join('') +
-      (chatBusy ? `<div class="msg ai typing"><span class="dots"><i></i><i></i><i></i></span></div>` : '');
+      (chatBusy ? (chatShown ? `<div class="msg ai md" id="chatLive">${md(chatShown)}</div>` : `<div class="msg ai typing" id="chatLive"><span class="dots"><i></i><i></i><i></i></span></div>`) : '');
     $('#chatLeft').textContent = state.ai ? 'Осталось сообщений сегодня: ' + state.ai.left : '';
     $('#chatSend').disabled = chatBusy;
-    if (scroll === 'end') box.scrollTop = box.scrollHeight;
+    if (scroll === 'keep') box.scrollTop = keepTop;
+    else if (scroll === 'end') box.scrollTop = box.scrollHeight;
     else if (scroll === 'last') { const last = box.lastElementChild; if (last) box.scrollTop = last.offsetTop - box.offsetTop - 8; }
   }
 
@@ -403,22 +421,28 @@
     const ta = $('#chatText'), text = ta.value.trim();
     if (!text || chatBusy) return;
     chatMsgs.push({ role: 'user', text }); ta.value = ''; autoGrow(ta);
-    chatBusy = true; renderChat('end');
+    chatBusy = true; chatTyping(true); renderChat('end');
     try {
       const s = await api('ai_chat_send', { text });
       state.ai.left = s.left;
       let r = null;
-      for (let i = 0; i < 100 && !r; i++) {
-        await new Promise(res => setTimeout(res, 3000));
+      for (let i = 0; i < 400 && !r; i++) {
+        await new Promise(res => setTimeout(res, 700));
         const x = await api('ai_chat_status', { job: s.job });
         if (x.status === 'done') r = x;
+        else if (x.partial) chatTarget = x.partial;
       }
       if (!r) throw new Error('ИИ не успел ответить — напишите ещё раз');
+      // допечатать до конца быстро и показать как обычное сообщение
+      chatTarget = r.message.text;
+      while (chatShown.length < chatTarget.length) { chatTick(); await new Promise(res => setTimeout(res, 15)); }
+      chatTyping(false);
       chatMsgs.push(r.message);
       if (typeof r.prefs === 'string') state.ai.prefs = r.prefs;
       saveCache(); haptic('ok');
-      chatBusy = false; renderChat('last');   // начало ответа — сверху, дальше читать вниз
+      chatBusy = false; renderChat('keep');
     } catch (e) {
+      chatTyping(false);
       chatBusy = false;
       if (e.code === 'ai_limit' || e.code === 'empty') { chatMsgs.pop(); ta.value = text; }
       renderChat('end'); toast('⚠️ ' + e.message);
