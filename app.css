@@ -390,6 +390,7 @@ textarea.grow { resize: none; overflow-y: auto; line-height: 1.4; display: block
 .ai-form .f-lbl { display: block; font-weight: 700; font-size: 14px; margin: 4px 0 6px; }
 .ai-form textarea { width: 100%; background: var(--field-bg); border: 1.5px solid var(--field-line); border-radius: 12px; padding: 10px 12px; font: inherit; font-size: 16px; color: var(--text); outline: none; }
 .ai-form textarea:focus { border-color: var(--accent); }
+.ai-form select { width: 100%; background: var(--field-bg); border: 1.5px solid var(--field-line); border-radius: 12px; padding: 10px 12px; font: inherit; font-size: 16px; color: var(--text); outline: none; }
 .ai-wait { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; padding: 40px 12px; }
 .ai-q { width: 26px; height: 26px; font-size: 13px; box-shadow: none; background: var(--bg); opacity: .6; }
 .pop { position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,.45); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 16px; animation: fadeBg .15s; }

@@ -315,7 +315,7 @@
   const dayMonth = s => { const d = parseDate(s); return d.getDate() + ' ' + MONTHS[d.getMonth()]; };
   const ymdAdd = (s, n) => { const d = parseDate(s); d.setDate(d.getDate() + n); return ymd(d); };
   const mondayYmd = s => { const d = parseDate(s); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return ymd(d); };
-  let aiRes = null, aiStart = null, aiWeeks = 1, aiDay = 0, aiBatch = 0;
+  let aiRes = null, aiStart = null, aiWeeks = 1, aiDay = 0, aiBatch = 0, aiTier = 0;
 
   function renderAiBox() {
     const a = state.ai;
@@ -332,16 +332,27 @@
     };
   }
 
+  // калоражи на выбор: 1200–3500 через 50 и норма участника, если её нет в этом ряду
+  function aiTiers() {
+    const own = Math.round(state.me.target) || 0, list = [];
+    for (let t = 1200; t <= 3500; t += 50) list.push(t);
+    if (own && !list.includes(own)) list.push(own);
+    return list.sort((a, b) => a - b);
+  }
+
   function renderAiForm(wishes) {
     $('#aiMenuBody').innerHTML = `
       <label class="f-lbl">Что вы хотите есть?</label>
       <textarea id="aiWishes" class="grow" rows="4" placeholder="Например: простое меню из продуктов, которые есть в любом магазине, и чтобы готовить было несложно. Люблю гречку с курицей и сырники. Не ем молоко.">${esc(wishes || '')}</textarea>
       <label class="f-lbl" style="margin-top:12px">Как часто вы хотите готовить?</label>
       <div class="seg pick" id="aiBatchSeg">${[[0, 'Каждый день'], [2, 'Раз в 2 дня'], [3, 'Раз в 3 дня']].map(([n, t]) => `<button data-b="${n}" class="${aiBatch === n ? 'on' : ''}">${t}</button>`).join('')}</div>
-      <div class="muted" style="margin:6px 0 12px">ИИ составит меню на неделю под ваш калораж ${fmt(state.me.target)} ккал. Попыток на сегодня: ${state.ai.left}</div>
+      <label class="f-lbl" style="margin-top:12px" for="aiTier">Калорий в день</label>
+      <select id="aiTier">${aiTiers().map(t => `<option value="${t}" ${t === (aiTier || Math.round(state.me.target)) ? 'selected' : ''}>${fmt(t)} ккал${t === Math.round(state.me.target) ? ' · ваша норма' : ''}</option>`).join('')}</select>
+      <div class="muted" style="margin:6px 0 12px">ИИ составит меню на неделю. Попыток на сегодня: ${state.ai.left}</div>
       <button class="btn primary full" id="aiGo">Составить меню</button>`;
     $('#aiBatchSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; aiBatch = +b.dataset.b; $$('#aiBatchSeg button').forEach(x => x.classList.toggle('on', x === b)); haptic(); };
-    $('#aiGo').onclick = () => aiRun({ wishes: $('#aiWishes').value, batch: aiBatch });
+    $('#aiTier').onchange = e => { aiTier = +e.target.value; };
+    $('#aiGo').onclick = () => aiRun({ wishes: $('#aiWishes').value, batch: aiBatch, tier: +$('#aiTier').value });
     renderAiPrefsBtn();
   }
 
