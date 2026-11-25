@@ -337,7 +337,7 @@
       <label class="f-lbl">Что вы хотите есть?</label>
       <textarea id="aiWishes" class="grow" rows="4" placeholder="Например: простое меню из продуктов, которые есть в любом магазине, и чтобы готовить было несложно. Люблю гречку с курицей и сырники. Не ем молоко.">${esc(wishes || '')}</textarea>
       <label class="f-lbl" style="margin-top:12px">Как часто вы хотите готовить?</label>
-      <div class="seg" id="aiBatchSeg">${[[0, 'Каждый день'], [2, 'Раз в 2 дня'], [3, 'Раз в 3 дня']].map(([n, t]) => `<button data-b="${n}" class="${aiBatch === n ? 'on' : ''}">${t}</button>`).join('')}</div>
+      <div class="seg pick" id="aiBatchSeg">${[[0, 'Каждый день'], [2, 'Раз в 2 дня'], [3, 'Раз в 3 дня']].map(([n, t]) => `<button data-b="${n}" class="${aiBatch === n ? 'on' : ''}">${t}</button>`).join('')}</div>
       <div class="muted" style="margin:6px 0 12px">ИИ составит меню на неделю под ваш калораж ${fmt(state.me.target)} ккал. Попыток на сегодня: ${state.ai.left}</div>
       <button class="btn primary full" id="aiGo">Составить меню</button>`;
     $('#aiBatchSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; aiBatch = +b.dataset.b; $$('#aiBatchSeg button').forEach(x => x.classList.toggle('on', x === b)); haptic(); };
@@ -405,9 +405,9 @@
       <textarea id="aiFix" class="grow" rows="2" placeholder="Например: в среду вместо рыбы курица"></textarea>
       <button class="btn full" id="aiFixGo" style="margin-top:8px">Поправить (попыток: ${state.ai.left})</button>
       <label class="f-lbl" style="margin-top:16px">С какой недели</label>
-      <div class="seg" id="aiStartSeg"><button data-s="${mon}" class="${aiStart === mon ? 'on' : ''}">Эта неделя</button><button data-s="${next}" class="${aiStart === next ? 'on' : ''}">Следующая</button></div>
+      <div class="seg pick" id="aiStartSeg"><button data-s="${mon}" class="${aiStart === mon ? 'on' : ''}">Эта неделя</button><button data-s="${next}" class="${aiStart === next ? 'on' : ''}">Следующая</button></div>
       <label class="f-lbl">На сколько недель</label>
-      <div class="seg" id="aiWeeksSeg">${[1, 2, 3, 4].map(n => `<button data-w="${n}" class="${aiWeeks === n ? 'on' : ''}">${n}</button>`).join('')}</div>
+      <div class="seg pick" id="aiWeeksSeg">${[1, 2, 3, 4].map(n => `<button data-w="${n}" class="${aiWeeks === n ? 'on' : ''}">${n}</button>`).join('')}</div>
       <div class="muted" style="margin-bottom:10px">Меню будет стоять с ${dayMonth(aiStart)} по ${dayMonth(end)}, потом снова меню тренера.</div>
       <button class="btn primary full" id="aiApply">Применить</button>`;
     $('#aiDays').onclick = e => { const b = e.target.closest('button'); if (!b) return; aiDay = +b.dataset.d; renderAiResult(); haptic(); };
