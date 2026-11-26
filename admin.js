@@ -109,6 +109,7 @@
     $('#hello').textContent = 'Админка';
     $('#sub').textContent = 'Привет, ' + d.me.name + ' · ' + dayLabel(d.date);
     renderStats(); renderMenuList(); renderAssign(); renderProducts();
+    $('#meBtn').classList.toggle('hidden', !d.me.participant); // тренер, который сам ещё и участник
   }
   async function load() {
     const b = $('#reloadBtn');
@@ -131,6 +132,7 @@
     $('#sub').textContent = '';
   }
   $('#reloadBtn').addEventListener('click', () => { haptic(); load(); });
+  $('#meBtn').addEventListener('click', () => { location.href = 'index.html'; });
   // Ссылка с разделом: admin.html#menu, #assign, #products, #menu=<код меню>
   function openFromHash() {
     const h = decodeURIComponent((location.hash || '').replace(/^#/, ''));
