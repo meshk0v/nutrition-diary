@@ -407,7 +407,11 @@ textarea.grow { resize: none; overflow-y: auto; line-height: 1.4; display: block
   background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 34px; }
 .ai-form select option { background: var(--card); color: var(--text); }
 /* ---------- Чат с ИИ ---------- */
-.chat-body { gap: 8px; }
+/* вкладка на весь экран до нижней навигации: переписка прокручивается, поле ввода всегда внизу */
+#tab-ai.active { display: flex; flex-direction: column; gap: 8px; position: fixed; top: 0; left: 0; right: 0; margin: 0 auto; max-width: 560px;
+  bottom: calc(64px + env(safe-area-inset-bottom)); background: var(--card); z-index: 4;
+  padding: calc(14px + var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)) 16px 8px; }
+.chat-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 30px; }
 .chat-new { font-size: 14px; }
 .chat-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 4px 2px 8px; overscroll-behavior: contain; }
 .msg { max-width: 100%; border-radius: 16px; padding: 10px 13px; font-size: 15px; line-height: 1.5; overflow-wrap: anywhere; }

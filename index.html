@@ -7,9 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="app.css?v=1795675559">
-  <script src="https://telegram.org/js/telegram-web-app.js?v=1795675559"></script>
-  <script src="config.js?v=1795675559"></script>
+  <link rel="stylesheet" href="app.css?v=1795676268">
+  <script src="https://telegram.org/js/telegram-web-app.js?v=1795676268"></script>
+  <script src="config.js?v=1795676268"></script>
 </head>
 <body class="booting">
   <div class="boot" id="boot"><div class="spin" id="bootSpin"></div></div>
@@ -55,6 +55,21 @@
       </section>
 
 
+      <!-- Меню с ИИ: чат (режим «Чат» настройки «Своё меню от ИИ — как работает») -->
+      <section class="tab" id="tab-ai">
+        <div class="chat-top">
+          <div class="q-title">💬 Меню с ИИ</div>
+          <button class="link chat-new" id="chatNew">Новый чат</button>
+        </div>
+        <div class="chat-list" id="chatList"></div>
+        <div class="chat-input">
+          <textarea id="chatText" class="grow" rows="1" placeholder="Напишите, какое меню хотите…"></textarea>
+          <button class="btn primary chat-send" id="chatSend" aria-label="Отправить">➤</button>
+        </div>
+        <div class="muted chat-left" id="chatLeft"></div>
+      </section>
+
+
       <!-- Замеры -->
       <section class="tab" id="tab-progress">
         <div class="card">
@@ -72,7 +87,7 @@
 
     <nav class="tabs">
       <button data-tab="report" class="active"><span class="ic">📝</span>Отчёт</button>
-      <!-- вкладка «Меню» пока без кнопки (из сообщений бота #menu она открывается); вместо неё — чат с ИИ -->
+      <!-- вкладка «Меню» пока без кнопки (из сообщений бота #menu она открывается); вместо неё — «Меню с ИИ» -->
       <button data-tab="ai"><span class="ic">🤖</span>Меню с ИИ</button>
       <button data-tab="progress"><span class="ic">📏</span>Замеры</button>
       <button data-tab="results"><span class="ic">📊</span>Итоги</button>
@@ -98,22 +113,6 @@
         <div class="top-right"><button class="help-btn ai-q hidden" id="aiPrefsBtn" aria-label="Что я о вас помню">?</button><button class="close" data-close>✕</button></div>
       </div>
       <div id="aiMenuBody" class="ai-form"></div>
-    </div>
-  </div>
-
-  <!-- Чат с ИИ о питании (режим «Чат» настройки «Своё меню от ИИ — как работает») -->
-  <div class="sheet hidden" id="aiChatSheet">
-    <div class="sheet-body chat-body">
-      <div class="sheet-top">
-        <div class="q-title">💬 Меню с ИИ</div>
-        <div class="top-right"><button class="link chat-new" id="chatNew">Новый чат</button><button class="close" data-close>✕</button></div>
-      </div>
-      <div class="chat-list" id="chatList"></div>
-      <div class="chat-input">
-        <textarea id="chatText" class="grow" rows="1" placeholder="Напишите, какое меню хотите…"></textarea>
-        <button class="btn primary chat-send" id="chatSend" aria-label="Отправить">➤</button>
-      </div>
-      <div class="muted chat-left" id="chatLeft"></div>
     </div>
   </div>
 
@@ -155,6 +154,6 @@
   </div>
 
   <div class="toast hidden" id="toast"></div>
-  <script src="app.js?v=1795675559"></script>
+  <script src="app.js?v=1795676268"></script>
 </body>
 </html>

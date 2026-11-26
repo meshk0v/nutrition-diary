@@ -418,7 +418,7 @@
 
   // каждый заход — новый чат; прошлые — списком сверху
   async function openChat() {
-    openSheet('#aiChatSheet');
+    switchTab('ai');
     if (chatBusy) { renderChat('end'); return; }
     chatThread = null; chatMsgs = [];
     renderChat('start');
@@ -1065,12 +1065,12 @@
     $$('.tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + name));
     window.scrollTo(0, 0);
   }
-  // «Меню с ИИ» — не вкладка: сразу открывает чат поверх текущего экрана
+  // «Меню с ИИ»: при каждом заходе на вкладку — новый чат (повторное нажатие на открытой вкладке ничего не сбрасывает)
   $$('.tabs button').forEach(b => b.addEventListener('click', () => {
     haptic();
     if (b.dataset.tab !== 'ai') return switchTab(b.dataset.tab);
     if (!state || !state.ai) return toast('ИИ пока не подключён');
-    openChat();
+    if (!b.classList.contains('active')) openChat();
   }));
 
   // Ссылка вида …/#menu открывает нужную вкладку (так бот может вести сразу в меню)
@@ -1113,7 +1113,8 @@
     $('#tourSkip').style.visibility = tourStep === TOUR.length - 1 ? 'hidden' : '';
     const btn = s.tab && $(`.tabs button[data-tab="${s.tab}"]`);
     if (btn) {
-      if (s.tab !== 'ai') switchTab(s.tab); // за подсветкой видно, что на этой вкладке
+      switchTab(s.tab); // за подсветкой видно, что на этой вкладке
+      if (s.tab === 'ai' && state && state.ai) renderChat('start');
       const r = btn.getBoundingClientRect();
       Object.assign(spot.style, { left: (r.left - 4) + 'px', top: (r.top - 4) + 'px', width: (r.width + 8) + 'px', height: (r.height + 8) + 'px' });
       spot.classList.toggle('center', false);
