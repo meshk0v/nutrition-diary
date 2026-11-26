@@ -1107,6 +1107,7 @@
   }
   function showTourStep() {
     const s = TOUR[tourStep], spot = $('#tourSpot'), card = $('#tourCard');
+    card.style.transition = 'none';
     $('#tourIc').textContent = s.ic; $('#tourT').textContent = s.t; $('#tourX').textContent = s.x;
     $$('#tourDots i').forEach((d, i) => d.classList.toggle('on', i === tourStep));
     $('#tourNext').textContent = tourStep === TOUR.length - 1 ? 'Понятно 👍' : 'Далее';
@@ -1123,6 +1124,10 @@
       spot.classList.add('center');
       card.style.bottom = ''; card.style.top = '30%';
     }
+    // если под/над подсвеченным местом карточка не помещается — прижимаем к низу экрана, чтобы кнопки были видны
+    const cr = card.getBoundingClientRect();
+    if (cr.bottom > window.innerHeight - 8 || cr.top < 8) { card.style.top = ''; card.style.bottom = '12px'; card.style.transition = 'none'; }
+    else card.style.transition = '';
     haptic();
   }
   $('#tourNext').addEventListener('click', () => { if (++tourStep >= TOUR.length) endTour(); else showTourStep(); });
