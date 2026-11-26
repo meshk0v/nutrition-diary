@@ -207,7 +207,7 @@
 
   function apply(data) {
     state = data;
-    $("#adminBtn").classList.toggle("hidden", !data.admin);
+    $("#roleSwitch").classList.toggle("hidden", !data.admin);
     if (inTelegram && data.demo) data.demo = false;
     items = (data.items || []).map(a => ({ name: a[0], type: a[1], kcal: a[2], p: a[3], f: a[4], c: a[5], portion: a[6] || 0 }));
     const d = parseDate(data.date);
@@ -1133,7 +1133,7 @@
   $('#tourNext').addEventListener('click', () => { if (++tourStep >= TOUR.length) endTour(); else showTourStep(); });
   $('#tourSkip').addEventListener('click', endTour);
   $('#helpBtn').addEventListener('click', startTour);
-  $('#adminBtn').addEventListener('click', () => { location.href = 'admin.html'; });
+  $('#roleSwitch').addEventListener('click', e => { if (e.target.closest('[data-role="admin"]')) { haptic(); location.href = 'admin.html'; } });
   window.addEventListener('resize', () => { if (!$('#tour').classList.contains('hidden')) showTourStep(); });
 
   init();

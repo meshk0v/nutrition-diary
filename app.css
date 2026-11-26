@@ -378,7 +378,11 @@ textarea.grow { resize: none; overflow-y: auto; line-height: 1.4; display: block
 
 /* Тренер, который ещё и участник: переход в админку */
 .top-right { display: flex; gap: 8px; align-items: center; }
-.admin-btn { padding: 6px 12px; border-radius: 15px; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 13px; }
+/* переключатель «Админ | Участник» */
+.role-switch { display: flex; gap: 4px; padding: 4px; margin-top: calc(12px + var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)); background: var(--card); box-shadow: var(--shadow); border-radius: 16px; }
+.role-switch button { flex: 1; padding: 9px 0; border-radius: 12px; font-weight: 700; font-size: 14px; color: var(--muted); }
+.role-switch button.on { background: var(--accent); color: #fff; }
+.role-switch:not(.hidden) + .top { padding-top: 12px; }
 
 .anketa .req { color: #e5484d; font-weight: 700; }
 .anketa .fld.bad .lbl { color: #e5484d; }
