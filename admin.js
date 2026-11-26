@@ -138,7 +138,7 @@
     const [tab, code] = h.split('=');
     if (tab === 'menu' && code) openEditor(code);
     else if (tab === 'person' && code) openPerson(code);
-    else if (['stats', 'menu', 'assign', 'products', 'settings'].includes(tab)) showTab(tab);
+    else if (['stats', 'settings'].includes(tab)) showTab(tab);
   }
 
   /* ---------- Сводка ---------- */
@@ -802,6 +802,10 @@
     { tab: 'stats', el: '#helpBtn', ic: '❓', t: 'Забыли, что где?', x: 'Нажмите на вопросик — и я снова всё покажу.' },
     { ic: '✅', t: 'Готово!', x: 'Теперь вы знаете всё самое главное.<br><br>Анкеты новых людей, отчёты и оплаты по-прежнему приходят вам в чат с ботом.' }
   ];
+  // про скрытые разделы не рассказываем
+  const HIDDEN_TABS = ['menu', 'assign', 'products'];
+  const shown = TOUR.filter(s => !HIDDEN_TABS.includes(s.tab));
+  TOUR.length = 0; TOUR.push(...shown);
   let tourStep = 0;
   function tourSeen() { try { return !!localStorage.getItem(TOUR_KEY); } catch (e) { return true; } }
   function startTour() {

@@ -1065,7 +1065,13 @@
     $$('.tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + name));
     window.scrollTo(0, 0);
   }
-  $$('.tabs button').forEach(b => b.addEventListener('click', () => { switchTab(b.dataset.tab); haptic(); }));
+  // «Меню с ИИ» — не вкладка: сразу открывает чат поверх текущего экрана
+  $$('.tabs button').forEach(b => b.addEventListener('click', () => {
+    haptic();
+    if (b.dataset.tab !== 'ai') return switchTab(b.dataset.tab);
+    if (!state || !state.ai) return toast('ИИ пока не подключён');
+    openChat();
+  }));
 
   // Ссылка вида …/#menu открывает нужную вкладку (так бот может вести сразу в меню)
   function openFromHash() {
@@ -1080,7 +1086,7 @@
   const TOUR = [
     { ic: '👋', t: 'Привет!', x: 'Покажу за 15 секунд, где что лежит.' },
     { tab: 'report', ic: '📝', t: 'Отчёт', x: 'Каждый день до 0:00. Калории и белок — из FatSecret, плюс голод, вес и шаги.' },
-    { tab: 'menu', ic: '📋', t: 'Меню', x: 'Меню на неделю от тренера и рецепты.' },
+    { tab: 'ai', ic: '🤖', t: 'Меню с ИИ', x: 'Напишите, какое меню хотите, — ИИ составит его в чате.' },
     { tab: 'progress', ic: '📏', t: 'Замеры', x: 'По воскресеньям: замеры и 4 фото.' },
     { tab: 'results', ic: '📊', t: 'Итоги', x: 'Ваш прогресс: вес, калории и белок по дням.' },
     { ic: '🔔', t: 'Напоминания придут в чат', x: 'Бот напомнит об отчёте и замерах — кнопка в сообщении откроет нужный экран.' }
@@ -1107,7 +1113,7 @@
     $('#tourSkip').style.visibility = tourStep === TOUR.length - 1 ? 'hidden' : '';
     const btn = s.tab && $(`.tabs button[data-tab="${s.tab}"]`);
     if (btn) {
-      switchTab(s.tab); // за подсветкой видно, что на этой вкладке
+      if (s.tab !== 'ai') switchTab(s.tab); // за подсветкой видно, что на этой вкладке
       const r = btn.getBoundingClientRect();
       Object.assign(spot.style, { left: (r.left - 4) + 'px', top: (r.top - 4) + 'px', width: (r.width + 8) + 'px', height: (r.height + 8) + 'px' });
       spot.classList.toggle('center', false);
