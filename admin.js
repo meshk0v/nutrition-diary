@@ -109,7 +109,7 @@
     $('#hello').textContent = 'Админка';
     $('#sub').textContent = 'Привет, ' + d.me.name + ' · ' + dayLabel(d.date);
     renderStats(); renderMenuList(); renderAssign(); renderProducts();
-    $('#roleSwitch').classList.toggle('hidden', !d.me.participant); // тренер, который сам ещё и участник
+    $('#roleSwitch').classList.remove('hidden'); // переход в раздел участника (не в списке участников — режим просмотра)
   }
   async function load() {
     const b = $('#reloadBtn');
